@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Monitoring Dashboard</title>
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1>Welcome to the Price Monitoring Dashboard</h1>
+
+    <!-- Home Button -->
+    <a href="{{ url_for('index') }}"><button>Home</button></a>
+
+    <!-- Login Button -->
+    <a href="{{ url_for('login') }}"><button>Login</button></a>
+
+    <!-- Add Product Button -->
+    <a href="{{ url_for('add_product') }}"><button>Add Product for Tracking</button></a>
+
+    <!-- Price Comparison Button -->
+    <a href="{{ url_for('price_comparison') }}"><button>Price Comparison</button></a>
+
+    <!-- Logout Button -->
+    <a href="{{ url_for('logout') }}"><button>Logout</button></a>
+
+    <!-- Register Button -->
+    <a href="{{ url_for('register') }}"><button>Register</button></a>
+</div>
+
+</body>
+</html>

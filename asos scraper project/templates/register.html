@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1>Register</h1>
+    <!-- Home Button -->
+    <a href="{{ url_for('index') }}" class="button-link"><button class="button-home">Home</button></a>
+    <form method="post" action="/register" onsubmit="return validateForm()">
+        <div class="input-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            <span class="error-message" id="usernameError"></span>
+        </div>
+
+        <div class="input-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+            <span class="error-message" id="emailError"></span>
+        </div>
+
+        <div class="input-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <span class="error-message" id="passwordError"></span>
+        </div>
+
+        <div class="input-group">
+            <label for="confirmPassword">Confirm Password:</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required>
+            <span class="error-message" id="confirmPasswordError"></span>
+        </div>
+
+        <input type="submit" value="Register">
+    </form>
+</div>
+
+<script>
+    function validateForm() {
+        // Reset error messages
+        document.getElementById('usernameError').innerText = '';
+        document.getElementById('emailError').innerText = '';
+        document.getElementById('passwordError').innerText = '';
+        document.getElementById('confirmPasswordError').innerText = '';
+
+        // Validate username
+        var username = document.getElementById('username').value;
+        if (!username || username.trim() === '') {
+            document.getElementById('usernameError').innerText = 'Username is required.';
+            return false;
+        }
+
+        // Validate email
+        var email = document.getElementById('email').value;
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || email.trim() === '' || !emailRegex.test(email)) {
+            document.getElementById('emailError').innerText = 'Valid email is required.';
+            return false;
+        }
+
+        // Validate password
+        var password = document.getElementById('password').value;
+        if (!password || password.trim() === '') {
+            document.getElementById('passwordError').innerText = 'Password is required.';
+            return false;
+        }
+
+        // Validate confirm password
+        var confirmPassword = document.getElementById('confirmPassword').value;
+        if (!confirmPassword || confirmPassword.trim() === '') {
+            document.getElementById('confirmPasswordError').innerText = 'Confirm password is required.';
+            return false;
+        }
+
+        // Check if passwords match
+        if (password !== confirmPassword) {
+            document.getElementById('confirmPasswordError').innerText = 'Passwords do not match.';
+            return false;
+        }
+
+        // Additional password authentication (you can customize this)
+        var passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            document.getElementById('passwordError').innerText = 'Password must be at least 8 characters long and include both letters and numbers.';
+            return false;
+        }
+
+        // Form is valid
+        return true;
+    }
+</script>
+</body>
+</html>

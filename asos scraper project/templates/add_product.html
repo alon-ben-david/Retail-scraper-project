@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product for Tracking</title>
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1>Add Product for Tracking</h1>
+    <!-- Home Button -->
+    <a href="{{ url_for('index') }}" class="button-link">
+        <button class="button-home">Home</button>
+    </a>
+    <form method="post" action="/add_product" onsubmit="return validateForm()">
+    <div class="input-group">
+        <!-- Ensure the name attribute is "product_details" -->
+        <label for="product_details">Product Details (Paste Product Link here):</label>
+        <textarea id="product_details" name="product_details" rows="4" required></textarea>
+        <span class="error-message" id="productDetailsError"></span>
+    </div>
+
+    <div class="input-group">
+        <!-- Ensure the name attribute is "target_price" -->
+        <label for="target_price">Target Price:</label>
+        <input type="text" id="target_price" name="target_price" required>
+        <span class="error-message" id="targetPriceError"></span>
+    </div>
+
+    <input type="submit" value="Add Product">
+</form>
+
+</div>
+
+<script>
+    function validateForm() {
+        // Reset error messages
+        document.getElementById('productDetailsError').innerText = '';
+        document.getElementById('targetPriceError').innerText = '';
+
+        // Validate product details (link)
+        var productDetails = document.getElementById('product_details').value;
+        if (!productDetails || productDetails.trim() === '') {
+            document.getElementById('productDetailsError').innerText = 'Product Link is required.';
+            return false;
+        }
+
+        // Validate target price
+        var targetPrice = document.getElementById('target_price').value;
+        if (!targetPrice || isNaN(targetPrice)) {
+            document.getElementById('targetPriceError').innerText = 'Valid target price is required.';
+            return false;
+        }
+
+        // Form is valid
+        return true;
+    }
+
+</script>
+</body>
+</html>

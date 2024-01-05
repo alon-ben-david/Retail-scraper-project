@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Comparison</title>
+    <!-- Link to an external CSS file for styling -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1>Price Comparison</h1>
+<!-- Home Button -->
+    <a href="{{ url_for('index') }}" class="button-link"><button class="button-home">Home</button></a>
+    <!-- Search Box and Button -->
+    <div class="input-group">
+        <label for="search_box">Enter Product Links:</label>
+        <input type="text" id="search_box" name="search_box" placeholder="Paste product links here..." required>
+        <button onclick="searchProducts()">Search</button>
+    </div>
+
+
+</div>
+
+<script>
+    function searchProducts() {
+        // Get the product links from the search box
+        var searchBox = document.getElementById('search_box');
+        var productLinks = searchBox.value;
+
+        // You can perform further actions with the product links, such as fetching data or displaying results
+        console.log('Product Links:', productLinks);
+    }
+</script>
+
+</body>
+</html>
