@@ -44,3 +44,30 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+/* Style for the new information panel */
+.info-panel {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #ecf0f1;
+    border-radius: 8px;
+}
+
+.info-panel h2 {
+    color: #333333;
+}
+.slider-container {
+    margin-top: 20px;
+}
+
+#priceSlider {
+    width: 80%;
+    margin-top: 10px;
+}
+
+#sliderLabel {
+    text-align: center;
+    margin-top: 5px;
+    color: #3498db;
+    font-weight: bold;
+}

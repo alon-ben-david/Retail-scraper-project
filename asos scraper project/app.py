@@ -5,6 +5,7 @@ import os
 from passlib.hash import sha256_crypt  # Added for password hashing
 from database_management import *
 from asos_scraper import *
+from flask import jsonify
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
@@ -94,39 +95,45 @@ def logout():
     return redirect(url_for('index'))
 
 
-# New route for adding product for tracking
+# New route for adding or searching product
 @app.route('/add_product', methods=['GET', 'POST'])
 def add_product():
     if 'username' in session:
+        product_url=''
         if request.method == 'POST':
-            username = session['username']
-            user_id = get_user_id_by_username(username)
+            if 'search_product' in request.form:
+                # Handle product search
+                product_url = request.form['product_details']
+                result = extract_info_from_url(product_url)
+                return jsonify(result)
 
-            if user_id:
-                url = request.form['product_details']
-                target_price = request.form['target_price']
+            else:  # Assuming the other button is 'add_product'
+                username = session['username']
+                user_id = get_user_id_by_username(username)
 
-                currency,product_name, initial_price = extract_info_from_url(url)
+                if user_id:
+                    url = request.form['product_details']
+                    target_price = request.form['target_price']
 
-                if not product_exists(user_id, product_name):
-                    # Extract current price and currency here
-                    current_price = initial_price
+                    currency, product_name, initial_price = extract_info_from_url(url)
 
+                    if not product_exists(user_id, product_name):
+                        # Extract current price and currency here
+                        current_price = initial_price
 
-                    save_tracked_product(user_id, product_name, url, initial_price, target_price, current_price,
-                                         currency)
+                        save_tracked_product(user_id, product_name, url, initial_price, target_price, current_price,
+                                             currency)
 
-                    return redirect(url_for('success'))
+                        return redirect(url_for('success'))
 
-                flash('Product already exists for the user.', 'error')
-            else:
-                flash('User not found.', 'error')
+                    flash('Product already exists for the user.', 'error')
+                else:
+                    flash('User not found.', 'error')
 
         return render_template('add_product.html')
     else:
-        flash('Please log in to add a product.', 'error')
+        flash('Please log in to add or search a product.', 'error')
         return redirect(url_for('login'))
-
 
 @app.route('/price_comparison', methods=['GET', 'POST'])
 def price_comparison():

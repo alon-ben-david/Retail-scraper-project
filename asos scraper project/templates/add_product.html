@@ -4,60 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Product for Tracking</title>
-    <!-- Link to an external CSS file for styling -->
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* Add your custom styles here */
+        #product_info_display {
+            display: none;
+            margin-top: 20px;
+        }
+
+
+
+
+
+    </style>
 </head>
 <body>
 <div class="container">
     <h1>Add Product for Tracking</h1>
-    <!-- Home Button -->
     <a href="{{ url_for('index') }}" class="button-link">
         <button class="button-home">Home</button>
     </a>
     <form method="post" action="/add_product" onsubmit="return validateForm()">
-    <div class="input-group">
-        <!-- Ensure the name attribute is "product_details" -->
-        <label for="product_details">Product Details (Paste Product Link here):</label>
-        <textarea id="product_details" name="product_details" rows="4" required></textarea>
-        <span class="error-message" id="productDetailsError"></span>
-    </div>
+        <div class="input-group">
+            <label for="product_details">Product Details (Paste Product Link here):</label>
+            <input type="text" id="product_details" name="product_details" maxlength="260" required>
+            <span class="error-message" id="productDetailsError"></span>
+        </div>
 
-    <div class="input-group">
-        <!-- Ensure the name attribute is "target_price" -->
-        <label for="target_price">Target Price:</label>
-        <input type="text" id="target_price" name="target_price" required>
-        <span class="error-message" id="targetPriceError"></span>
-    </div>
 
-    <input type="submit" value="Add Product">
-</form>
+        <button type="button" onclick="searchAndDisplayProduct()">Search Product</button>
 
-</div>
+        <div id="product_info_display">
+            <h2>Product Information</h2>
+            <p id="product_name">Product Name: [Placeholder]</p>
+            <p id="product_price">Product Price: [Placeholder]</p>
+            <p id="currency_display">Currency: [Placeholder]</p>
+            <p id="target_price_display">Target Price: [Placeholder]</p>
 
-<script>
+            <!-- Interface for setting target price -->
+            <div id="target_price_interface">
+                <label>Discount:</label>
+                <button type="button" onclick="applyDiscount(10)" id="discount_10">10%</button>
+                <button type="button" onclick="applyDiscount(20)" id="discount_20">20%</button>
+                <button type="button" onclick="applyDiscount(30)" id="discount_30">30%</button>
+
+                <div class="slider-container">
+                    <label for="priceSlider">Adjust Target Price:</label>
+                    <input type="range" id="priceSlider" min="0" max="100" value="0" step="10"
+                           oninput="updateSliderLabel()">
+                    <div id="sliderLabel">0%</div>
+                </div>
+            </div>
+
+            <!-- Submit button, initially hidden -->
+            <input type="submit" value="Add Product" id="submit_button" style="display: none;">
+        </div>
+    </form>
+
+    <script>
+    // Function to apply discount and update target price
+    function applyDiscount(discount) {
+        var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
+
+        // Calculate the discounted price
+        var discountedPrice = currentPrice * (1 - discount / 100);
+
+        // Update the target price display
+        document.getElementById('target_price_display').innerText = 'Target Price: ' + discountedPrice.toFixed(2);
+    }
+
+    function searchAndDisplayProduct() {
+    var productDetails = document.getElementById('product_details').value;
+
+    // Make an AJAX request to the server for product search
+    fetch('/add_product', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'search_product': true,
+            'product_details': productDetails,
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Display the result from the server
+        document.getElementById('product_name').innerText = 'Product Name: ' + data.productName;
+        document.getElementById('product_price').innerText = 'Product Price: ' + data.productPrice;
+        document.getElementById('target_price_display').innerText = 'Target Price: ' + document.getElementById('target_price').value;
+        document.getElementById('currency_display').innerText = 'Currency: ' + data.currency;
+
+        // Show the product information display
+        document.getElementById('product_info_display').style.display = 'block';
+
+        // Show the submit button
+        document.getElementById('submit_button').style.display = 'block';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+
     function validateForm() {
-        // Reset error messages
-        document.getElementById('productDetailsError').innerText = '';
-        document.getElementById('targetPriceError').innerText = '';
-
-        // Validate product details (link)
-        var productDetails = document.getElementById('product_details').value;
-        if (!productDetails || productDetails.trim() === '') {
-            document.getElementById('productDetailsError').innerText = 'Product Link is required.';
-            return false;
-        }
-
-        // Validate target price
-        var targetPrice = document.getElementById('target_price').value;
-        if (!targetPrice || isNaN(targetPrice)) {
-            document.getElementById('targetPriceError').innerText = 'Valid target price is required.';
-            return false;
-        }
-
-        // Form is valid
+        // Add your form validation logic here if needed
         return true;
     }
 
-</script>
+
+
+
+
+    </script>
+</div>
 </body>
 </html>
