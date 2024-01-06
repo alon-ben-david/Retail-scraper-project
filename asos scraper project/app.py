@@ -121,16 +121,14 @@ def add_product():
                 user_id = get_user_id_by_username(username)
 
                 if user_id:
-                    url = request.form['product_details']
-                    target_price = request.form['manual_target_price']
+                    url = request.form['product_url']
+                    target_price = request.form['target_price_value']
                     product_name = request.form['product_name_value']
                     current_price = request.form['product_price_value']
                     currency = request.form['currency_display_value']
-
+                    initial_price = request.form['product_price_value']
                     if not product_exists(user_id, product_name):
                         # Extract current price and currency here
-                        current_price = initial_price
-
                         save_tracked_product(user_id, product_name, url, initial_price, target_price, current_price,
                                              currency)
 

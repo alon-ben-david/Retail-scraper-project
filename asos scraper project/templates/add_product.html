@@ -29,9 +29,11 @@
             <p id="product_price">Product Price: [Placeholder]</p>
             <p id="currency_display">Currency: [Placeholder]</p>
             <p id="target_price_display">Target Price: [Placeholder]</p>
-            <input type="hidden" id="product_name_value" name="product_name">
-            <input type="hidden" id="product_price_value" name="product_price">
-            <input type="hidden" id="currency_display_value" name="currency_display">
+            <input type="hidden" id="product_name_value" name="product_name_value">
+            <input type="hidden" id="product_url" name="product_url">
+            <input type="hidden" id="currency_display_value" name="currency_display_value">
+            <input type="hidden" id="product_price_value" name="product_price_value">
+            <input type="hidden" id="target_price_value" name="target_price_value">
 
             <!-- Interface for setting target price -->
             <div id="target_price_interface">
@@ -78,7 +80,7 @@
 
             function searchAndDisplayProduct() {
                 var productDetails = document.getElementById('product_details').value;
-
+                document.getElementById('product_url').value = productDetails;
                 // Make an AJAX request to the server for product search
                 fetch('/add_product', {
                         method: 'POST',
@@ -95,9 +97,12 @@
                         if (data && data.product_name !== undefined && data.product_price !== undefined && data.currency !== undefined) {
                             // Display the result from the server
                             document.getElementById('product_name').innerText = 'Product Name: ' + data.product_name;
+                            document.getElementById('product_name_value').value=data.product_name;
                             document.getElementById('product_price').innerText = 'Product Price: ' + data.product_price;
+                            document.getElementById('product_price_value').value=parseFloat(data.product_price);
                             document.getElementById('currency_display').innerText = 'Currency: ' + data.currency;
-
+                            document.getElementById('currency_display_value').value=data.currency;
+                            document.getElementById('manual_target_price').value = data.product_price.toFixed(2);
                             // Set default target price as product price
                             var currentPrice = parseFloat(data.product_price);
                             document.getElementById('target_price_display').innerText = 'Target Price: ' + currentPrice.toFixed(2);
@@ -122,6 +127,7 @@
 
             function updateTargetPriceFromManual() {
                 var manualTargetPrice = parseFloat(document.getElementById('manual_target_price').value);
+                document.getElementById('target_price_value').value=manualTargetPrice;
                 updateTargetPrice(manualTargetPrice);
             }
 
@@ -171,14 +177,6 @@
                 return true;
             }
             function sendFormPlaceholderData() {
-    var productNameDetails = document.getElementById('product_name').innerText.replace('Product Name: ', '');
-    var pricePlaceholder = document.getElementById('product_price').innerText.replace('Product Price: ', '');
-    var currencyDisplayHolder = document.getElementById('currency_display').innerText.replace('Currency: ', '');
-
-    // Set the values of hidden inputs
-    document.getElementById('product_name_value').value = productNameDetails;  // Fix the variable name here
-    document.getElementById('product_price_value').value = pricePlaceholder;
-    document.getElementById('currency_display_value').value = currencyDisplayHolder;
 }
 
 
