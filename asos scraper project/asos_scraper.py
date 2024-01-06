@@ -25,7 +25,7 @@ def extract_info_from_url(url):
         driver.get(url)
 
         # Wait for the name element to be present on the page
-        name_element = WebDriverWait(driver, 5).until(
+        name_element = WebDriverWait(driver, 2).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "jcdpl"))
         )
 
@@ -34,7 +34,7 @@ def extract_info_from_url(url):
         print("Product Name:", name_text)
 
         # Wait for the price element to be present on the page
-        price_element = WebDriverWait(driver, 3).until(
+        price_element = WebDriverWait(driver, 1).until(
             EC.visibility_of_element_located(
                 (By.XPATH, "//span[@data-testid='current-price' and contains(@class, 'MwTOW BR6YF')]"))
         )

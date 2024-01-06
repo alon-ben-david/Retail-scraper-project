@@ -1,36 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Product for Tracking</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <style>
-        /* Add your custom styles here */
-        #product_info_display {
-            display: none;
-            margin-top: 20px;
-        }
-
-
-
-
-
-    </style>
 </head>
+
 <body>
 <div class="container">
     <h1>Add Product for Tracking</h1>
     <a href="{{ url_for('index') }}" class="button-link">
         <button class="button-home">Home</button>
     </a>
-    <form method="post" action="/add_product" onsubmit="return validateForm()">
+    <form method="post" action="/add_product" onsubmit="sendFormPlaceholderData(); return validateForm();">
         <div class="input-group">
             <label for="product_details">Product Details (Paste Product Link here):</label>
             <input type="text" id="product_details" name="product_details" maxlength="260" required>
             <span class="error-message" id="productDetailsError"></span>
         </div>
-
 
         <button type="button" onclick="searchAndDisplayProduct()">Search Product</button>
 
@@ -40,9 +29,17 @@
             <p id="product_price">Product Price: [Placeholder]</p>
             <p id="currency_display">Currency: [Placeholder]</p>
             <p id="target_price_display">Target Price: [Placeholder]</p>
+            <input type="hidden" id="product_name_value" name="product_name">
+            <input type="hidden" id="product_price_value" name="product_price">
+            <input type="hidden" id="currency_display_value" name="currency_display">
 
             <!-- Interface for setting target price -->
             <div id="target_price_interface">
+                <label>Manual Target Price:</label>
+                <input type="number" id="manual_target_price" name="manual_target_price" step="0.01"
+                       placeholder="Enter target price" oninput="updateTargetPriceFromManual()">
+
+
                 <label>Discount:</label>
                 <button type="button" onclick="applyDiscount(10)" id="discount_10">10%</button>
                 <button type="button" onclick="applyDiscount(20)" id="discount_20">20%</button>
@@ -50,67 +47,144 @@
 
                 <div class="slider-container">
                     <label for="priceSlider">Adjust Target Price:</label>
-                    <input type="range" id="priceSlider" min="0" max="100" value="0" step="10"
-                           oninput="updateSliderLabel()">
-                    <div id="sliderLabel">0%</div>
+                    <input type="range" id="priceSlider" min="0" max="100" value="100" step="10"
+                           oninput="updateTargetPriceFromSlider()">
+                    <div id="sliderLabel">100%</div>
                 </div>
             </div>
-
             <!-- Submit button, initially hidden -->
-            <input type="submit" value="Add Product" id="submit_button" style="display: none;">
+            <input type="submit" value="Add Product" id="submit_button">
         </div>
     </form>
 
+
     <script>
-    // Function to apply discount and update target price
-    function applyDiscount(discount) {
-        var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
+            // Function to apply discount and update target price
+            function applyDiscount(discount) {
+                var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
 
-        // Calculate the discounted price
-        var discountedPrice = currentPrice * (1 - discount / 100);
+                // Calculate the discounted price
+                var discountedPrice = currentPrice * (1 - discount / 100);
 
-        // Update the target price display
-        document.getElementById('target_price_display').innerText = 'Target Price: ' + discountedPrice.toFixed(2);
-    }
+                // Update the target price display
+                document.getElementById('target_price_display').innerText = 'Target Price: ' + discountedPrice.toFixed(2);
 
-    function searchAndDisplayProduct() {
-    var productDetails = document.getElementById('product_details').value;
+                // Set manual target price input value
+                document.getElementById('manual_target_price').value = discountedPrice.toFixed(2);
 
-    // Make an AJAX request to the server for product search
-    fetch('/add_product', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            'search_product': true,
-            'product_details': productDetails,
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Display the result from the server
-        document.getElementById('product_name').innerText = 'Product Name: ' + data.productName;
-        document.getElementById('product_price').innerText = 'Product Price: ' + data.productPrice;
-        document.getElementById('target_price_display').innerText = 'Target Price: ' + document.getElementById('target_price').value;
-        document.getElementById('currency_display').innerText = 'Currency: ' + data.currency;
+                // Update the slider value based on the target price
+                updateSliderValue(discountedPrice);
+            }
 
-        // Show the product information display
-        document.getElementById('product_info_display').style.display = 'block';
+            function searchAndDisplayProduct() {
+                var productDetails = document.getElementById('product_details').value;
 
-        // Show the submit button
-        document.getElementById('submit_button').style.display = 'block';
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
+                // Make an AJAX request to the server for product search
+                fetch('/add_product', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'search_product': true,
+                            'product_details': productDetails,
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.product_name !== undefined && data.product_price !== undefined && data.currency !== undefined) {
+                            // Display the result from the server
+                            document.getElementById('product_name').innerText = 'Product Name: ' + data.product_name;
+                            document.getElementById('product_price').innerText = 'Product Price: ' + data.product_price;
+                            document.getElementById('currency_display').innerText = 'Currency: ' + data.currency;
+
+                            // Set default target price as product price
+                            var currentPrice = parseFloat(data.product_price);
+                            document.getElementById('target_price_display').innerText = 'Target Price: ' + currentPrice.toFixed(2);
+
+                            // Show the product information display
+                            document.getElementById('product_info_display').style.display = 'block';
+
+                            // Show the submit button
+                            document.getElementById('submit_button').style.display = 'block';
+
+                            // Update the slider value based on the target price
+                            updateSliderValue(currentPrice);
+                        } else {
+                            // Handle the case when no product is found or invalid data format
+                            console.error('No product found or invalid data format.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            function updateTargetPriceFromManual() {
+                var manualTargetPrice = parseFloat(document.getElementById('manual_target_price').value);
+                updateTargetPrice(manualTargetPrice);
+            }
+
+            function updateTargetPriceFromSlider() {
+                var sliderValue = parseInt(document.getElementById('priceSlider').value);
+                var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
+                var targetPrice = (sliderValue / 100) * currentPrice;
+                updateTargetPrice(targetPrice);
+            }
+
+            // Function to update slider value based on target price
+            function updateSliderValue(targetPrice) {
+                var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
+                var sliderValue = (targetPrice / currentPrice) * 100;
+
+                // Update the slider value
+                document.getElementById('priceSlider').value = sliderValue;
+
+                // Update the slider label
+                updateSliderLabel();
+            }
+
+            function updateTargetPrice(newTargetPrice) {
+                var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
+
+                // Calculate the target price
+                var targetPrice = isNaN(newTargetPrice) ? currentPrice : newTargetPrice;
+
+                // Update the target price display
+                document.getElementById('target_price_display').innerText = 'Target Price: ' + targetPrice.toFixed(2);
+
+                // Update the slider value based on the target price
+                updateSliderValue(targetPrice);
+
+                // Set manual target price input value
+                document.getElementById('manual_target_price').value = targetPrice.toFixed(2);
+            }
+
+            function updateSliderLabel() {
+                var slider = document.getElementById('priceSlider');
+                var sliderLabel = document.getElementById('sliderLabel');
+                sliderLabel.innerText = slider.value + '%';
+            }
+
+            function validateForm() {
+                // Add your form validation logic here if needed
+                return true;
+            }
+            function sendFormPlaceholderData() {
+    var productNameDetails = document.getElementById('product_name').innerText.replace('Product Name: ', '');
+    var pricePlaceholder = document.getElementById('product_price').innerText.replace('Product Price: ', '');
+    var currencyDisplayHolder = document.getElementById('currency_display').innerText.replace('Currency: ', '');
+
+    // Set the values of hidden inputs
+    document.getElementById('product_name_value').value = productNameDetails;  // Fix the variable name here
+    document.getElementById('product_price_value').value = pricePlaceholder;
+    document.getElementById('currency_display_value').value = currencyDisplayHolder;
 }
 
 
-    function validateForm() {
-        // Add your form validation logic here if needed
-        return true;
-    }
+
+
+
 
 
 
@@ -119,4 +193,5 @@
     </script>
 </div>
 </body>
+
 </html>

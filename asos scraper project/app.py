@@ -95,17 +95,26 @@ def logout():
     return redirect(url_for('index'))
 
 
-# New route for adding or searching product
 @app.route('/add_product', methods=['GET', 'POST'])
 def add_product():
     if 'username' in session:
-        product_url=''
+        product_url = ''
+        currency = ''
+        product_name = ''
+        initial_price = 0
+
         if request.method == 'POST':
+            app.logger.info(request.form)
             if 'search_product' in request.form:
                 # Handle product search
                 product_url = request.form['product_details']
-                result = extract_info_from_url(product_url)
-                return jsonify(result)
+                currency, product_name, initial_price = extract_info_from_url(product_url)
+                response_data = {
+                    'product_name': product_name,
+                    'product_price': initial_price,
+                    'currency': currency
+                }
+                return jsonify(response_data)
 
             else:  # Assuming the other button is 'add_product'
                 username = session['username']
@@ -113,9 +122,10 @@ def add_product():
 
                 if user_id:
                     url = request.form['product_details']
-                    target_price = request.form['target_price']
-
-                    currency, product_name, initial_price = extract_info_from_url(url)
+                    target_price = request.form['manual_target_price']
+                    product_name = request.form['product_name_value']
+                    current_price = request.form['product_price_value']
+                    currency = request.form['currency_display_value']
 
                     if not product_exists(user_id, product_name):
                         # Extract current price and currency here
@@ -134,6 +144,7 @@ def add_product():
     else:
         flash('Please log in to add or search a product.', 'error')
         return redirect(url_for('login'))
+
 
 @app.route('/price_comparison', methods=['GET', 'POST'])
 def price_comparison():

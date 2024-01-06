@@ -56,6 +56,7 @@ a:hover {
 .info-panel h2 {
     color: #333333;
 }
+
 .slider-container {
     margin-top: 20px;
 }
@@ -70,4 +71,8 @@ a:hover {
     margin-top: 5px;
     color: #3498db;
     font-weight: bold;
+}
+
+#product_info_display {
+    margin-top: 20px;
 }
