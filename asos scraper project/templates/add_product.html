@@ -23,7 +23,7 @@
 
         <button type="button" onclick="searchAndDisplayProduct()">Search Product</button>
 
-        <div id="product_info_display">
+        <div id="product_info_display"class="hidden">
             <h2>Product Information</h2>
             <p id="product_name">Product Name: [Placeholder]</p>
             <p id="product_price">Product Price: [Placeholder]</p>
@@ -115,6 +115,8 @@
 
                             // Update the slider value based on the target price
                             updateSliderValue(currentPrice);
+                            var productInfoDisplay = document.getElementById('product_info_display');
+                             productInfoDisplay.classList.remove('hidden');
                         } else {
                             // Handle the case when no product is found or invalid data format
                             console.error('No product found or invalid data format.');
