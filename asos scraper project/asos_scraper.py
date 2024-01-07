@@ -33,11 +33,19 @@ def extract_info_from_url(url):
         name_text = name_element.get_attribute("innerText").strip()
         print("Product Name:", name_text)
 
-        # Wait for the price element to be present on the page
-        price_element = WebDriverWait(driver, 1).until(
-            EC.visibility_of_element_located(
-                (By.XPATH, "//span[@data-testid='current-price' and contains(@class, 'MwTOW BR6YF')]"))
-        )
+        try:
+            price_element = WebDriverWait(driver, 1).until(
+                EC.visibility_of_element_located(
+                    (By.XPATH, "//span[@data-testid='current-price' and contains(@class, 'MwTOW BR6YF')]")
+                )
+            )
+        except TimeoutException:
+            # If the first attempt times out, try the second XPATH without 'BR6YF'
+            price_element = WebDriverWait(driver, 1).until(
+                EC.visibility_of_element_located(
+                    (By.XPATH, "//span[@data-testid='current-price' and contains(@class, 'MwTOW')]")
+                )
+            )
 
         # Extract the price text
         price_text = price_element.get_attribute("innerText").strip()
@@ -75,3 +83,5 @@ def extract_info_from_url(url):
     finally:
         # Close the WebDriver
         driver.quit()
+
+
