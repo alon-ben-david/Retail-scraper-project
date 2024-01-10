@@ -129,6 +129,7 @@ def add_product():
                     initial_price = request.form['product_price_value']
                     if not product_exists(user_id, product_name):
                         # Extract current price and currency here
+                        print(target_price)
                         save_tracked_product(user_id, product_name, url, initial_price, target_price, current_price,
                                              currency)
 

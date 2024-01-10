@@ -75,7 +75,7 @@
 
                 // Set manual target price input value
                 document.getElementById('manual_target_price').value = discountedPrice.toFixed(2);
-
+                document.getElementById('target_price_value').value=discountedPrice.toFixed(2);
                 // Update the slider value based on the target price
                 updateSliderValue(discountedPrice);
             }
@@ -107,6 +107,7 @@
                             document.getElementById('currency_display').innerText = 'Currency: ' + data.currency;
                             document.getElementById('currency_display_value').value=data.currency;
                             document.getElementById('manual_target_price').value = data.product_price.toFixed(2);
+                            document.getElementById('target_price_value').value=data.product_price.toFixed(2);
                             // Set default target price as product price
                             var currentPrice = parseFloat(data.product_price);
                             document.getElementById('target_price_display').innerText = 'Target Price: ' + currentPrice.toFixed(2);
@@ -148,6 +149,7 @@
                 var sliderValue = parseInt(document.getElementById('priceSlider').value);
                 var currentPrice = parseFloat(document.getElementById('product_price').innerText.replace('Product Price: ', ''));
                 var targetPrice = (sliderValue / 100) * currentPrice;
+                document.getElementById('target_price_value').value=targetPrice
                 updateTargetPrice(targetPrice);
             }
 
@@ -198,6 +200,7 @@
 function hideLoadingSpinner() {
     document.getElementById('loading_spinner').style.display = 'none';
 }
+
 
 
 

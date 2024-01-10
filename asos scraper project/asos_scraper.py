@@ -1,5 +1,5 @@
 import os
-
+import re
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -9,6 +9,9 @@ from selenium.webdriver.chrome.options import Options
 
 
 def extract_info_from_url(url):
+    if not is_valid_asos_product_link(url):
+        print("Not a valid ASOS link")
+        return
     options = Options()
     options.headless = True
     options.add_argument('window-size=1920x1080')
@@ -85,3 +88,9 @@ def extract_info_from_url(url):
         driver.quit()
 
 
+def is_valid_asos_product_link(link):
+    # Regular expression to match ASOS product links
+    asos_link_pattern = re.compile(r'https://www\.asos\.com/.+/prd/\d+.*')
+
+    # Check if the link matches the pattern
+    return bool(asos_link_pattern.match(link))
