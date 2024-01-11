@@ -31,6 +31,12 @@ def index():
 
         # Redirect to another page after processing
         return redirect(url_for('success'))
+    extract_info_codembo_url('https://codembo.com/en/prd/200905024?cur=EUR')
+    extract_info_codembo_url('https://codembo.com/en/prd/205344938?cur=EUR')
+    extract_info_codembo_url('https://codembo.com/en/prd/205428249?cur=EUR')
+    extract_info_codembo_url('https://codembo.com/en/prd/205072755?cur=EUR')
+    extract_info_codembo_url('https://codembo.com/en/prd/202659073?cur=EUR')
+
 
     return render_template('index.html')
 
