@@ -79,12 +79,12 @@
                 // Update the slider value based on the target price
                 updateSliderValue(discountedPrice);
             }
-function isValidAsosProductLink(url) {
-  // Check if the URL contains key elements for ASOS product links
-  return (
-    url.startsWith('https://www.asos.com/') &&
-    /\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+\/(prd|grp)\/\d+/.test(url)
-  );
+function isValidAsosProductLink(link) {
+  // Regular expression to match ASOS product links
+  const asosLinkPattern = /^https:\/\/www\.asos\.com\/.+\/prd\/\d+.*/;
+
+  // Check if the link matches the pattern
+  return asosLinkPattern.test(link);
 }
 
 function searchAndDisplayProduct() {
@@ -93,6 +93,13 @@ function searchAndDisplayProduct() {
   var productDetails = document.getElementById('product_details').value;
 
                 document.getElementById('product_url').value = productDetails;
+                if (!isValidAsosProductLink(productDetails))
+                {
+                                             hideLoadingSpinner();
+
+                    alert('not valid url');
+                    return;
+                }
                 // Make an AJAX request to the server for product search
                 fetch('/add_product', {
                         method: 'POST',
