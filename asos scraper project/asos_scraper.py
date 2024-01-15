@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 import pandas as pd
 from bs4 import BeautifulSoup
 import requests
+import time
 
 
 def extract_info_from_url(url):
@@ -135,19 +136,44 @@ def asos_price_comparison(url):
 
 
 def extract_info_codembo_url(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    try:
+        # Throttling: Introduce a delay between requests to avoid rate limiting
+        time.sleep(1)  # 1-second delay
 
-    product_name = soup.select_one('h1.prd-card-title').text.strip()
-    product_prices = {}
+        response = requests.get(url)
+        response.raise_for_status()  # Raise HTTPError for bad responses
+    except requests.RequestException as e:
+        print(f"Error fetching URL: {e}")
+        return None, None
 
-    for row in soup.select('table.goodt tbody tr'):
-        country_code = row.select_one('td').text.strip()
-        price = row.select_one('td:nth-of-type(2)').text.strip()
-        product_prices[country_code] = price
+    try:
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Print the result
-    return product_name, product_prices
+        # Robust Selector for product_name
+        product_name_element = soup.select_one('h1.prd-card-title')
+        if product_name_element:
+            product_name = product_name_element.text.strip()
+        else:
+            print("Product name not found.")
+            return None, None
+
+        product_prices = {}
+
+        # Robust Selectors for country_code and price
+        for row in soup.select('table.goodt tbody tr'):
+            country_code_element = row.select_one('td')
+            price_element = row.select_one('td:nth-of-type(2)')
+
+            if country_code_element and price_element:
+                country_code = country_code_element.text.strip()
+                price = price_element.text.strip()
+                product_prices[country_code] = price
+
+        # Return the result
+        return product_name, product_prices
+    except Exception as e:
+        print(f"Error parsing HTML: {e}")
+        return None, None
 
 
 def calculate_basket_total(products):
@@ -226,7 +252,6 @@ def calculate_basket_total_df(products):
 
 def create_dataframe(products):
     data = []
-
     # Iterate through each product in the basket
     for product_name, product_prices in products:
         # Create a dictionary to store data for the current product
@@ -246,9 +271,26 @@ def create_dataframe(products):
     # Create a DataFrame from the list of product data
     df = pd.DataFrame(data)
     print(df.columns)
+
+    sum_df = pd.DataFrame(index=['Sum'])
+    for country_code in product_prices.keys():
+        df[country_code] = pd.to_numeric(df[country_code],
+                                         errors='coerce')  # Convert to numeric, handle errors by setting them to NaN
+        sum_column_name = f'{country_code}_sum'
+        print(df[country_code].sum())
+        sum_df[sum_column_name] = df[country_code].sum()
+
+
+    # Display the result
+    print(sum_df)
+    export_to_csv(sum_df, 'sum_output.csv')
+
     export_to_csv(df)
 
     return df
+
+
+# def analyze_price_each_country(product_prices):
 
 
 def export_to_csv(df, filename='product_prices.csv'):
