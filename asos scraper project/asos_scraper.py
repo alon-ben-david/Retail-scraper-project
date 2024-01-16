@@ -11,6 +11,8 @@ import numpy as np
 from bs4 import BeautifulSoup
 import requests
 import time
+from currency_converter import convert_currency
+import binpacking
 
 
 def extract_info_from_url(url):
@@ -121,21 +123,6 @@ def build_request_link(product_id):
     return base_url + str(product_id) + currency_param
 
 
-def asos_price_comparison(url):
-    # Create an empty DataFrame
-    df = pd.DataFrame(columns=[
-        'product_id',
-        'product_name',
-        'product_price_SA',
-        'product_price_IL',
-        'product_price_HK',
-        'product_price_CN',
-        'product_price_AU',
-        'product_price_SE',
-        'product_price_UK'
-    ])
-
-
 def extract_info_codembo_url(url):
     try:
         # Throttling: Introduce a delay between requests to avoid rate limiting
@@ -177,80 +164,6 @@ def extract_info_codembo_url(url):
         return None, None
 
 
-def calculate_basket_total(products):
-    # Initialize a dictionary to store total costs for each country
-    total_costs = {}
-
-    # Initialize a set to keep track of country codes with prices for all products
-    valid_country_codes = set()
-
-    # Initialize a dictionary to store country codes for each product
-    product_country_codes = {}
-
-    # Iterate through each product in the basket
-    for product_name, product_prices in products:
-        print(f"Product: {product_name}")
-        print("Prices:")
-
-        # Flag to check if the product has prices for all countries
-        has_all_prices = True
-
-        # Use the minimum set of country codes from the previous products, if available
-        if valid_country_codes:
-            current_country_codes = valid_country_codes
-        else:
-            current_country_codes = set(product_prices.keys())
-
-        # Update the country codes for the current product
-        product_country_codes[product_name] = current_country_codes
-
-        for country_code in current_country_codes:
-            price = product_prices.get(country_code, None)
-            print(f"{country_code}: {price}")
-
-            # Check if the price is missing for the current country
-            if price is None:
-                print(f"Missing price for {country_code} in {product_name}")
-                has_all_prices = False
-            else:
-                # Convert price to float and accumulate total cost for the country
-                price_float = float(price)
-                total_costs.setdefault(country_code, 0)
-                total_costs[country_code] += price_float
-
-        print()
-
-        # If the product is missing a price for any country, skip it
-        if not has_all_prices:
-            print(f"Skipping {product_name} due to missing prices for some countries.\n")
-            continue
-
-        # Add country codes with prices for the current product to the set
-        valid_country_codes.update(current_country_codes)
-
-    # Print the total costs for country codes with prices for all products
-    print("Total Costs:")
-    for country_code, total_cost in total_costs.items():
-        if country_code in valid_country_codes:
-            print(f"{country_code}: {total_cost:.2f}")
-
-
-def calculate_basket_total_df(products):
-    df = pd.DataFrame(columns=[
-        'product_id',
-        'product_name',
-        'product_price_SA',
-        'product_price_IL',
-        'product_price_HK',
-        'product_price_CN',
-        'product_price_AU',
-        'product_price_SE',
-        'product_price_UK'
-    ])
-    for product_name, product_prices in products:
-        df["product_name"] = product_name
-
-
 def create_dataframe(products):
     data = []
     # Iterate through each product in the basket
@@ -282,7 +195,7 @@ def create_dataframe(products):
         df[country_code] = pd.to_numeric(df[country_code],
                                          errors='coerce')  # Convert to numeric, handle errors by setting them to NaN
         sum_df[country_code] = df[country_code].sum()
-
+    can_use_il17(df, sum_df)
     export_to_csv(sum_df, 'sum_output.csv')
     export_to_csv(df)
 
@@ -299,7 +212,9 @@ def analyze_price_each_country(df, sum_df):
     print(cheapest_country)
     print(second_cheapest_country)
     result_df, sum_basket = compare_prices(df, cheapest_country, second_cheapest_country)
+    result_df = result_df.reset_index(drop=True)
 
+    knapsack_by_country(result_df, "IL", 10, 80)
     basket_dict = {}
 
     for index, row in result_df.iterrows():
@@ -416,3 +331,66 @@ def id_list_to_price_list(product_id_list):
         product_list.append((product_name, product_prices))
 
     return product_list
+
+
+def can_use_il17(df, sum_df):
+    # Define the minimum cost in EUR
+    min_cost_eur = convert_currency(50, '£', 'EUR')
+
+    # Check if the total cost for IL exceeds the minimum cost in EUR
+    if (sum_df['IL'] > min_cost_eur).all():
+        # Update all rows in the 'IL' column of sum_df
+        print(sum_df['IL'])
+        sum_df['IL'] = (sum_df['IL'] * 0.83).round(2)
+        print(sum_df['IL'])
+        # Update all rows in the 'IL' column of df
+        print(df['IL'])
+        df['IL'] = (df['IL'] * 0.83).round(2)
+        print(df['IL'])
+
+        print("V")
+
+    return df, sum_df
+
+
+def knapsack_by_country(df, country, min_value, max_value):
+    # Filter the DataFrame to include only products from the specified country
+    df_country = df[df["Country"] == country]
+
+    # Sort the products by Cheapest_Price in descending order
+    df_sorted = df_country.sort_values(by="Cheapest_Price", ascending=False)
+
+    # Initialize variables
+    backpacks = []
+    current_backpack = []
+    current_value = 0
+
+    # Iterate through the sorted products
+    for index, row in df_sorted.iterrows():
+        product_name = row['product_name']
+        cheapest_price = row['Cheapest_Price']
+
+        # Try adding the current product to the current backpack
+        if min_value <= current_value + cheapest_price <= max_value:
+            current_backpack.append(product_name)
+            current_value += cheapest_price
+        else:
+            # Start a new backpack
+            if current_backpack:
+                backpacks.append((current_backpack, current_value))
+            current_backpack = [product_name]
+            current_value = cheapest_price
+
+    # Handle remaining products
+    if current_backpack:
+        backpacks.append((current_backpack, current_value))
+
+    # Print Results
+    if not backpacks:
+        print(f"No valid backpack combinations within the value limits for {country}.")
+    else:
+        for i, (backpack, total_value) in enumerate(backpacks):
+            print(f"Backpack {i + 1} for {country}:")
+            for product_name in backpack:
+                print(f"  - {product_name}")
+            print(f"  Total value: ${total_value:.2f}\n")
