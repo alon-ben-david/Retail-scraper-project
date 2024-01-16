@@ -214,7 +214,9 @@ def analyze_price_each_country(df, sum_df):
     result_df, sum_basket = compare_prices(df, cheapest_country, second_cheapest_country)
     result_df = result_df.reset_index(drop=True)
 
-    knapsack_by_country(result_df, "IL", 10, 80)
+    knapsack_by_country(result_df, "IL", 50, 75)
+    result_df_country = result_df[result_df["Country"] == 'IL']
+    printb(split_products_into_baskets(result_df_country, 50, 74))
     basket_dict = {}
 
     for index, row in result_df.iterrows():
@@ -394,3 +396,53 @@ def knapsack_by_country(df, country, min_value, max_value):
             for product_name in backpack:
                 print(f"  - {product_name}")
             print(f"  Total value: ${total_value:.2f}\n")
+
+
+def split_products_into_baskets(products_df, min_value, max_value):
+    # Sort products based on name and then by price
+    sorted_products = products_df.sort_values(by=['product_name', 'Cheapest_Price'])
+
+    n = len(sorted_products)
+    dp = [float('inf')] * (n + 1)
+    dp[0] = 0  # Minimum baskets needed for an empty list is 0
+
+    for i in range(1, n + 1):
+        current_basket_value = 0
+        max_price_in_basket = 0
+
+        for j in range(i, 0, -1):
+            current_basket_value += sorted_products.iloc[j - 1]['Cheapest_Price']
+            max_price_in_basket = max(max_price_in_basket, sorted_products.iloc[j - 1]['Cheapest_Price'])
+
+            # Check if adding the current product exceeds the maximum value per basket
+            if current_basket_value <= max_value and max_price_in_basket <= max_value:
+                dp[i] = min(dp[i], dp[j - 1] + 1)
+
+    result = []
+    i = n
+    while i > 0:
+        j = i
+        while j > 0 and dp[j] == dp[i]:
+            j -= 1
+
+        basket_products = sorted_products.iloc[j:i]
+        basket_total_price = basket_products['Cheapest_Price'].sum()
+
+        result.append({
+            'Basket': result[::-1],
+            'Total_Price': basket_total_price,
+            'Products': basket_products[['product_name', 'Cheapest_Price']].to_dict(orient='records')
+        })
+        i = j
+
+    return result[::-1]
+
+def printb(result):
+    # Print the result in a more readable format
+    for i, basket in enumerate(result, start=1):
+        print(f'Basket {i}:')
+        print(f'Total Price: {basket["Total_Price"]}')
+        print('Products:')
+        for product in basket['Products']:
+            print(f'  {product["product_name"]}: {product["Cheapest_Price"]}')
+        print()
