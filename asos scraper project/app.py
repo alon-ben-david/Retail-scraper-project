@@ -32,11 +32,11 @@ def index():
         # Redirect to another page after processing
         return redirect(url_for('success'))
     #extract_info_codembo_url('https://codembo.com/en/prd/204398386?cur=EURhttps://codembo.com/en/prd/204398386?cur=EUR')
-    #print(extract_product_id_from_url('https://www.asos.com/shared-board/3deda666-7ca5-4522-8719-93463619d953?acquisitionsource=whatsapp'))
-    price = id_list_to_price_list(['205015352', '205009650', '202753966', '24485963', '202089905', '202685547', '202882345', '23450912', '204972030', '204982557', '204825501', '203783492', '202437701', '205321404', '205350944', '204398386', '203197247', '201204217', '204825569'])
+    data = (extract_product_id_from_url('https://www.asos.com/shared-board/94e3bdcb-9db1-42ca-9776-6befb34a33b1?acquisitionsource=pasteboard'))
+    price = id_list_to_price_list(data)
 
-    create_dataframe(price)
-
+    df, sum_df=create_dataframe(price)
+    analyze_price_each_country(df, sum_df)
     return render_template('index.html')
 
 

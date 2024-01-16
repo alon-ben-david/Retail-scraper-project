@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
+import numpy as np
 from bs4 import BeautifulSoup
 import requests
 import time
@@ -263,34 +264,102 @@ def create_dataframe(products):
         # Add availability columns for each country
         for country_code in product_prices.keys():
             availability_column_name = f'{country_code}_available'
-            product_data[availability_column_name] = not pd.isnull(product_prices[country_code])
 
+            # Add availability columns for each country
+            for country_code in product_prices.keys():
+                availability_column_name = f'{country_code}_available'
+                product_data[availability_column_name] = not pd.isnull(product_prices[country_code])
         # Append the product data to the list
         data.append(product_data)
 
     # Create a DataFrame from the list of product data
     df = pd.DataFrame(data)
-    print(df.columns)
 
+    print(df.columns)
+    df = df.fillna(False)
     sum_df = pd.DataFrame(index=['Sum'])
     for country_code in product_prices.keys():
         df[country_code] = pd.to_numeric(df[country_code],
                                          errors='coerce')  # Convert to numeric, handle errors by setting them to NaN
-        sum_column_name = f'{country_code}_sum'
-        print(df[country_code].sum())
-        sum_df[sum_column_name] = df[country_code].sum()
+        sum_df[country_code] = df[country_code].sum()
 
-
-    # Display the result
-    print(sum_df)
     export_to_csv(sum_df, 'sum_output.csv')
-
     export_to_csv(df)
 
-    return df
+    return df, sum_df
 
 
-# def analyze_price_each_country(product_prices):
+def analyze_price_each_country(df, sum_df):
+    # Flatten the sum_df DataFrame and sort it to find the two smallest values
+    sorted_sum = sum_df.unstack().sort_values()
+
+    # Extract the two smallest values and their corresponding countries
+    smallest_values = sorted_sum.head(2)
+    cheapest_country, second_cheapest_country = [col[0] for col in smallest_values.index]
+    print(cheapest_country)
+    print(second_cheapest_country)
+    result_df, sum_basket = compare_prices(df, cheapest_country, second_cheapest_country)
+
+    basket_dict = {}
+
+    for index, row in result_df.iterrows():
+        product_name = row['product_name']
+        country = row['Country']
+        price = row['Cheapest_Price']
+
+        if country not in basket_dict:
+            basket_dict[country] = {'products': [], 'total_price': 0}
+
+        basket_dict[country]['products'].append({'product_name': product_name, 'price': price})
+        basket_dict[country]['total_price'] += price
+
+    # Print the basket_dict
+    for country, details in basket_dict.items():
+        print(f"Country: {country}")
+        print("Products:")
+        for product in details['products']:
+            print(f"  - {product['product_name']}: {product['price']}")
+        print(f"Total Price: {details['total_price']:.2f}")
+
+
+def compare_prices(df, cheapest_country, second_cheapest_country):
+    # Create an empty list to store the results
+    result_list = []
+
+    # Iterate through each product
+    for index, row in df.iterrows():
+        product_name = row['product_name']
+
+        if row[cheapest_country] == 0.0 and row[second_cheapest_country] == 0.0:
+            # Find minimum non-zero price and country
+            non_zero_prices = {col: price for col, price in row.items() if price != 0}
+            if non_zero_prices:
+                cheapest_country = min(non_zero_prices, key=non_zero_prices.get)
+                cheapest_price = non_zero_prices[cheapest_country]
+            else:
+                cheapest_country = None
+                cheapest_price = 0.0
+        else:
+            cheapest_price = row[cheapest_country] if row[second_cheapest_country] == 0.0 else (
+                row[second_cheapest_country] if row[cheapest_country] == 0.0 else min(row[cheapest_country],
+                                                                                      row[second_cheapest_country])
+            )
+
+        country = cheapest_country if row[cheapest_country] == cheapest_price else second_cheapest_country
+
+        # Append the result to the list
+        result_list.append({'product_name': product_name, 'Country': country, 'Cheapest_Price': cheapest_price})
+
+    # Create a DataFrame from the list of results
+    result_df = pd.DataFrame(result_list)
+
+    sum_basket = result_df['Cheapest_Price'].sum()
+    print(f"Total cost of the basket in the cheapest country:{sum_basket:.2f}")
+
+    print(result_df)
+    export_to_csv(result_df, 'result_df_output.csv')
+
+    return result_df, sum_basket
 
 
 def export_to_csv(df, filename='product_prices.csv'):
