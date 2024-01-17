@@ -214,7 +214,6 @@ def analyze_price_each_country(df, sum_df):
     result_df, sum_basket = compare_prices(df, cheapest_country, second_cheapest_country)
     result_df = result_df.reset_index(drop=True)
 
-    knapsack_by_country(result_df, "IL", 50, 75)
     result_df_country = result_df[result_df["Country"] == 'IL']
     printb(split_products_into_baskets(result_df_country, 50, 74))
     basket_dict = {}
@@ -342,60 +341,11 @@ def can_use_il17(df, sum_df):
     # Check if the total cost for IL exceeds the minimum cost in EUR
     if (sum_df['IL'] > min_cost_eur).all():
         # Update all rows in the 'IL' column of sum_df
-        print(sum_df['IL'])
         sum_df['IL'] = (sum_df['IL'] * 0.83).round(2)
-        print(sum_df['IL'])
         # Update all rows in the 'IL' column of df
-        print(df['IL'])
         df['IL'] = (df['IL'] * 0.83).round(2)
-        print(df['IL'])
-
-        print("V")
 
     return df, sum_df
-
-
-def knapsack_by_country(df, country, min_value, max_value):
-    # Filter the DataFrame to include only products from the specified country
-    df_country = df[df["Country"] == country]
-
-    # Sort the products by Cheapest_Price in descending order
-    df_sorted = df_country.sort_values(by="Cheapest_Price", ascending=False)
-
-    # Initialize variables
-    backpacks = []
-    current_backpack = []
-    current_value = 0
-
-    # Iterate through the sorted products
-    for index, row in df_sorted.iterrows():
-        product_name = row['product_name']
-        cheapest_price = row['Cheapest_Price']
-
-        # Try adding the current product to the current backpack
-        if min_value <= current_value + cheapest_price <= max_value:
-            current_backpack.append(product_name)
-            current_value += cheapest_price
-        else:
-            # Start a new backpack
-            if current_backpack:
-                backpacks.append((current_backpack, current_value))
-            current_backpack = [product_name]
-            current_value = cheapest_price
-
-    # Handle remaining products
-    if current_backpack:
-        backpacks.append((current_backpack, current_value))
-
-    # Print Results
-    if not backpacks:
-        print(f"No valid backpack combinations within the value limits for {country}.")
-    else:
-        for i, (backpack, total_value) in enumerate(backpacks):
-            print(f"Backpack {i + 1} for {country}:")
-            for product_name in backpack:
-                print(f"  - {product_name}")
-            print(f"  Total value: ${total_value:.2f}\n")
 
 
 def split_products_into_baskets(products_df, min_value, max_value):
@@ -436,6 +386,7 @@ def split_products_into_baskets(products_df, min_value, max_value):
         i = j
 
     return result[::-1]
+
 
 def printb(result):
     # Print the result in a more readable format
