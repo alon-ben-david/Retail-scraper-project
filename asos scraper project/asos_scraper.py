@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 import requests
 import time
 from currency_converter import convert_currency
-import binpacking
 
 
 def extract_info_from_url(url):

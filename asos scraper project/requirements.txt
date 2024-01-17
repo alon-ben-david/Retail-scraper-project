@@ -5,4 +5,13 @@ Flask-SQLAlchemy
 geopy
 certifi
 Flask-MySQLdb
+secrets
 passlib
+selenium
+pandas
+numpy
+bs4
+schedule
+ssl
+smtplib
+email
