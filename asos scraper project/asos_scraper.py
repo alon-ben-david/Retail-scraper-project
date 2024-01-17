@@ -397,3 +397,69 @@ def printb(result):
         for product in basket['Products']:
             print(f'  {product["product_name"]}: {product["Cheapest_Price"]}')
         print()
+
+
+def send_to_israel(url):
+    if not is_valid_asos_product_link(url):
+        print("Not a valid ASOS link")
+        return "Invalid Link"
+
+    options = Options()
+    options.headless = True
+    options.add_argument('window-size=1920x1080')
+    options.add_argument("--enable-logging")  # Enable browser logging
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    )
+
+    path = os.getenv('CHROMEDRIVER_PATH')
+    driver = webdriver.Chrome(path, options=options)
+
+    try:
+        # Navigate to the URL
+        driver.get(url)
+
+        # Wait for the name element to be present on the page
+        name_element = WebDriverWait(driver, 2).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, "jcdpl"))
+        )
+
+        # Extract the name text
+        name_text = name_element.get_attribute("innerText").strip()
+        print("Product Name:", name_text)
+
+        # Find the shipping restrictions button
+        shipping_restrictions_button = WebDriverWait(driver, 1).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, "//button[@data-testid='deliveryAndReturns__shippingRestrictionsButton']")
+            )
+        )
+        if shipping_restrictions_button:
+            # Click on the shipping restrictions button
+            shipping_restrictions_button.click()
+
+            # Wait for the list of shipping restrictions to appear
+            shipping_restrictions_list = WebDriverWait(driver, 2).until(
+                EC.visibility_of_element_located(
+                    (By.XPATH, "//ul[@class='Uu_Pi' and @data-testid='shipping-restrictions-country-list']")
+                )
+            )
+
+            # Check if 'Israel' is in the shipping restrictions list
+            if 'Israel' in shipping_restrictions_list.text:
+                print("This product can be sent to Israel.")
+                return True
+            else:
+                print("This product cannot be sent to Israel.")
+                return False
+        else:
+            print("This product can be sent to Israel.")
+            return True
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return "Error"
+
+    finally:
+        # Close the WebDriver
+        driver.quit()
