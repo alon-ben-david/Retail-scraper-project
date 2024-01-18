@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 import requests
 import time
 from currency_converter import convert_currency
+import concurrent.futures  # For threading
 
 
 def extract_info_from_url(url):
@@ -193,7 +194,7 @@ def create_dataframe(products):
     for country_code in product_prices.keys():
         df[country_code] = pd.to_numeric(df[country_code],
                                          errors='coerce')  # Convert to numeric, handle errors by setting them to NaN
-        sum_df[country_code] = df[country_code].sum()
+        sum_df[country_code] = df[country_code].sum().round(2)
     can_use_il17(df, sum_df)
     export_to_csv(sum_df, 'sum_output.csv')
     export_to_csv(df)
@@ -212,9 +213,7 @@ def analyze_price_each_country(df, sum_df):
     print(second_cheapest_country)
     result_df, sum_basket = compare_prices(df, cheapest_country, second_cheapest_country)
     result_df = result_df.reset_index(drop=True)
-
-    result_df_country = result_df[result_df["Country"] == 'IL']
-    printb(split_products_into_baskets(result_df_country, 50, 74))
+    split_and_print_basket(result_df)
     basket_dict = {}
 
     for index, row in result_df.iterrows():
@@ -270,7 +269,6 @@ def compare_prices(df, cheapest_country, second_cheapest_country):
 
     sum_basket = result_df['Cheapest_Price'].sum()
     print(f"Total cost of the basket in the cheapest country:{sum_basket:.2f}")
-
     print(result_df)
     export_to_csv(result_df, 'result_df_output.csv')
 
@@ -322,11 +320,8 @@ def extract_product_id_from_url(url):
 
 def id_list_to_price_list(product_id_list):
     product_list = []
-
     for product_id in product_id_list:
-        print(product_id)
         url = build_request_link(product_id)
-        print(url)
         product_name, product_prices = extract_info_codembo_url(url)
         product_list.append((product_name, product_prices))
 
@@ -350,7 +345,6 @@ def can_use_il17(df, sum_df):
 def split_products_into_baskets(products_df, min_value, max_value):
     # Sort products based on name and then by price
     sorted_products = products_df.sort_values(by=['product_name', 'Cheapest_Price'])
-
     n = len(sorted_products)
     dp = [float('inf')] * (n + 1)
     dp[0] = 0  # Minimum baskets needed for an empty list is 0
@@ -375,12 +369,12 @@ def split_products_into_baskets(products_df, min_value, max_value):
             j -= 1
 
         basket_products = sorted_products.iloc[j:i]
-        basket_total_price = basket_products['Cheapest_Price'].sum()
+        basket_total_price = basket_products['Cheapest_Price'].sum().round(2)
 
         result.append({
             'Basket': result[::-1],
+            'Country': basket_products['Country'].values[0],
             'Total_Price': basket_total_price,
-            'Country': basket_products['Country'],
             'Products': basket_products[['product_name', 'Cheapest_Price']].to_dict(orient='records')
         })
         i = j
@@ -392,7 +386,7 @@ def printb(result):
     # Print the result in a more readable format
     for i, basket in enumerate(result, start=1):
         print(f'Basket {i}:')
-        print(f'{basket["Country"]}')
+        print(f'Country: {basket["Country"]}')
         print(f'Total Price: {basket["Total_Price"]}')
         print('Products:')
         for product in basket['Products']:
@@ -464,3 +458,12 @@ def send_to_israel(url):
     finally:
         # Close the WebDriver
         driver.quit()
+
+
+def split_and_print_basket(result_df):
+    customs_payment_limit = convert_currency(75, '$', 'EUR')
+
+    country_list = result_df["Country"].unique()
+    for country in country_list:
+        result_df_country = result_df[result_df["Country"] == country]
+        printb(split_products_into_baskets(result_df_country, 50, customs_payment_limit))
