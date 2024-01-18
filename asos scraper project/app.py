@@ -32,11 +32,11 @@ def index():
         # Redirect to another page after processing
         return redirect(url_for('success'))
     #extract_info_codembo_url('https://codembo.com/en/prd/204398386?cur=EURhttps://codembo.com/en/prd/204398386?cur=EUR')
-    #data = (extract_product_id_from_url('https://www.asos.com/shared-board/94e3bdcb-9db1-42ca-9776-6befb34a33b1?acquisitionsource=pasteboard'))
-    #price = id_list_to_price_list(data)
-    send_to_israel('https://www.asos.com/levis/levis-mini-ringer-t-shirt-with-small-logo-in-white-green/prd/205359008#colourWayId-205359012')
-    #df, sum_df=create_dataframe(price)
-    #analyze_price_each_country(df, sum_df)
+    data = (extract_product_id_from_url('https://www.asos.com/shared-board/94e3bdcb-9db1-42ca-9776-6befb34a33b1?acquisitionsource=pasteboard'))
+    price = id_list_to_price_list(data)
+    #send_to_israel('https://www.asos.com/levis/levis-mini-ringer-t-shirt-with-small-logo-in-white-green/prd/205359008#colourWayId-205359012')
+    df, sum_df=create_dataframe(price)
+    analyze_price_each_country(df, sum_df)
     return render_template('index.html')
 
 

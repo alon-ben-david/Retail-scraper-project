@@ -380,6 +380,7 @@ def split_products_into_baskets(products_df, min_value, max_value):
         result.append({
             'Basket': result[::-1],
             'Total_Price': basket_total_price,
+            'Country': basket_products['Country'],
             'Products': basket_products[['product_name', 'Cheapest_Price']].to_dict(orient='records')
         })
         i = j
@@ -391,6 +392,7 @@ def printb(result):
     # Print the result in a more readable format
     for i, basket in enumerate(result, start=1):
         print(f'Basket {i}:')
+        print(f'{basket["Country"]}')
         print(f'Total Price: {basket["Total_Price"]}')
         print('Products:')
         for product in basket['Products']:
