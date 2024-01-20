@@ -13,6 +13,7 @@ import requests
 import time
 from currency_converter import convert_currency
 import concurrent.futures  # For threading
+import traceback
 
 
 def extract_info_from_url(url):
@@ -126,12 +127,13 @@ def build_request_link(product_id):
 def extract_info_codembo_url(url):
     try:
         # Throttling: Introduce a delay between requests to avoid rate limiting
-        time.sleep(1)  # 1-second delay
+        time.sleep(2)  # 1-second delay
 
         response = requests.get(url)
         response.raise_for_status()  # Raise HTTPError for bad responses
     except requests.RequestException as e:
         print(f"Error fetching URL: {e}")
+        print(traceback.format_exc())  # Print the complete traceback
         return None, None
 
     try:
@@ -139,6 +141,7 @@ def extract_info_codembo_url(url):
 
         # Robust Selector for product_name
         product_name_element = soup.select_one('h1.prd-card-title')
+
         if product_name_element:
             product_name = product_name_element.text.strip()
         else:
@@ -159,10 +162,10 @@ def extract_info_codembo_url(url):
 
         # Return the result
         return product_name, product_prices
+
     except Exception as e:
         print(f"Error parsing HTML: {e}")
         return None, None
-
 
 def create_dataframe(products):
     data = []
@@ -234,6 +237,8 @@ def analyze_price_each_country(df, sum_df):
         for product in details['products']:
             print(f"  - {product['product_name']}: {product['price']}")
         print(f"Total Price: {details['total_price']:.2f}")
+
+    return result_df
 
 
 def compare_prices(df, cheapest_country, second_cheapest_country):
@@ -322,6 +327,7 @@ def id_list_to_price_list(product_id_list):
     product_list = []
     for product_id in product_id_list:
         url = build_request_link(product_id)
+        time.sleep(1)  # 1-second delay
         product_name, product_prices = extract_info_codembo_url(url)
         product_list.append((product_name, product_prices))
 
@@ -467,3 +473,11 @@ def split_and_print_basket(result_df):
     for country in country_list:
         result_df_country = result_df[result_df["Country"] == country]
         printb(split_products_into_baskets(result_df_country, 50, customs_payment_limit))
+
+
+def handle_product_basket_search(product_url):
+    data = extract_product_id_from_url(product_url)
+    product_list = id_list_to_price_list(data)
+    df, sum_df = create_dataframe(product_list)
+    result_df = analyze_price_each_country(df, sum_df)
+    return result_df

@@ -31,15 +31,6 @@ def index():
 
         # Redirect to another page after processing
         return redirect(url_for('success'))
-    # extract_info_codembo_url('https://codembo.com/en/prd/204398386?cur=EURhttps://codembo.com/en/prd/204398386?cur=EUR')
-    data = (extract_product_id_from_url(
-        'https://www.asos.com/shared-board/94e3bdcb-9db1-42ca-9776-6befb34a33b1?acquisitionsource=pasteboard'))
-    price = id_list_to_price_list(data)
-
-    # send_to_israel('https://www.asos.com/levis/levis-mini-ringer-t-shirt-with-small-logo-in-white-green/prd/205359008#colourWayId-205359012')
-    df, sum_df = create_dataframe(price)
-
-    analyze_price_each_country(df, sum_df)
     return render_template('index.html')
 
 
@@ -116,6 +107,8 @@ def add_product():
             if 'search_product' in request.form:
                 # Handle product search
                 product_url = request.form['product_details']
+                data = (extract_product_id_from_url(product_url))
+                price = id_list_to_price_list(data)
                 currency, product_name, initial_price = extract_info_from_url(product_url)
                 response_data = {
                     'product_name': product_name,
@@ -156,11 +149,26 @@ def add_product():
 @app.route('/price_comparison', methods=['GET', 'POST'])
 def price_comparison():
     if request.method == 'POST':
-        # Handle form submission or any other logic here
-        return redirect(url_for('success'))
+        # Get product URL from the request form data
+        product_url = request.form.get('product_details')
 
+        # Handle the product basket search and obtain a pandas DataFrame
+        df_result = handle_product_basket_search(product_url)
+
+        # Convert the pandas DataFrame to JSON
+        json_result = df_result.to_json(orient='records')
+        print(json_result)
+        # Add a success message to the JSON response
+        response_data = {
+            'success': True,
+            'data': json_result
+        }
+
+        # Render the template with the JSON data
+        return jsonify(response_data)
+
+    # If it's a GET request, simply render the template without processing data
     return render_template('price_comparison.html')
-
 
 if __name__ == '__main__':
     app.run(debug=True)
