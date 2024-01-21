@@ -167,6 +167,7 @@ def extract_info_codembo_url(url):
         print(f"Error parsing HTML: {e}")
         return None, None
 
+
 def create_dataframe(products):
     data = []
     # Iterate through each product in the basket
@@ -287,6 +288,14 @@ def export_to_csv(df, filename='product_prices.csv'):
 
 
 def extract_product_id_from_url(url):
+    missing_info_placeholder = None
+
+    data = {
+        'Name': [],
+        'Image Link': [],
+        'Id': [],
+        'Link': []
+    }
     options = Options()
     options.headless = True
     options.add_argument('window-size=1920x1080')
@@ -314,10 +323,43 @@ def extract_product_id_from_url(url):
         li_elements = soup.find_all('li')
 
         # Extract href values from each <li> element
-        href_list = [li.find('a')['href'] for li in li_elements if li.find('a') and 'href' in li.find('a').attrs]
-        product_id_list = [extract_asos_product_id(href) for href in href_list]
+        for li in li_elements:
+            print(li)
+            if li.find('a') and 'href' in li.find('a').attrs:
+                href = 'https://www.asos.com/' + li.find('a')['href']
+                product_id = extract_asos_product_id(href)  # Assuming extract_asos_product_id is defined somewhere
 
-        return product_id_list
+                # Find the <img> tag
+                image_link_element =  li.select_one('img')
+                print(image_link_element)
+
+                # Find the product title <div> tag
+                product_title_div = li.find('div', class_='productTitle_gn7x9')
+
+                # Check if the product title <div> tag is found
+                if product_title_div:
+                    # Extract the product name
+                    name = product_title_div.find('p').text.strip()
+                    data['Name'].append(name)
+                else:
+                    # If product title <div> tag is not found, append None or a placeholder
+                    data['Name'].append(None)
+
+                # Check if the <img> tag is found
+                if image_link_element:
+                    # Extract the 'src' attribute
+                    image_link = extract_image_link(image_link_element)
+                    data['Image Link'].append(image_link)
+                else:
+                    # If <img> tag is not found, append None or a placeholder
+                    data['Image Link'].append(None)
+
+                data['Link'].append(href)
+                data['Id'].append(product_id)
+
+        data_df = pd.DataFrame(data)
+        print(data_df[['Name', 'Image Link']])
+        return data_df
 
     finally:
         driver.quit()
@@ -477,7 +519,19 @@ def split_and_print_basket(result_df):
 
 def handle_product_basket_search(product_url):
     data = extract_product_id_from_url(product_url)
-    product_list = id_list_to_price_list(data)
-    df, sum_df = create_dataframe(product_list)
-    result_df = analyze_price_each_country(df, sum_df)
-    return result_df
+
+    return data
+
+
+def extract_image_link(html_code):
+    # Check if html_code is not None
+    if html_code:
+        # Access the 'src' attribute of the <img> tag
+        src_attribute = html_code.get('src')
+
+        # Check if 'src' attribute is found
+        if src_attribute:
+            return src_attribute
+
+    # Return None if 'src' attribute is not found or html_code is None
+    return None

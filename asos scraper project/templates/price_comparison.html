@@ -5,98 +5,154 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Price Comparison</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* Center the page */
+
+    </style>
 </head>
 <body>
-    <input type="text" id="product_details" placeholder="Enter product details">
-    <button onclick="searchAndDisplayProduct()">Search</button>
 
+<!-- Container for the content -->
+<div class="container">
+
+    <!-- Home button with link -->
+    <a href="{{ url_for('index') }}" class="button-link">
+        <button class="button-home">Home</button>
+    </a>
+
+    <!-- Success message area -->
     <div id="successMessage" style="color: green;"></div>
 
-    <table id="resultTable">
+    <!-- Product input and search button -->
+    <label for="product_details">Product Details (Paste Product Link here):</label>
+    <input type="text" id="product_details" name="product_details" maxlength="260" required>
+    <button type="button" onclick="searchAndDisplayProduct()">Search Product</button>
+
+    <!-- Loading spinner (hidden by default) -->
+    <div id="loading_spinner" class="hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Product information display area (hidden by default) -->
+    <div id="product_info_display" class="hidden">
+        <h2>Product Information</h2>
+
+        <!-- Table for displaying product information -->
+         <table id="resultTable">
         <thead>
             <tr>
                 <th>Product Name</th>
-                <th>Country</th>
-                <th>Cheapest Price</th>
+                <th>Image</th>
+                <th>Id</th>
+                <th>Link</th>
             </tr>
         </thead>
         <tbody>
             <!-- Table body will be updated dynamically -->
         </tbody>
     </table>
+    </div>
 
-    <script>
-        function searchAndDisplayProduct() {
-    var productDetails = document.getElementById('product_details').value;
+</div> <!-- End of .container -->
 
-    // Encode the data for the form-urlencoded format
-    var formData = new URLSearchParams();
-    formData.append('product_details', productDetails);
 
-    // Make an AJAX/Fetch request to the backend
-    fetch('/price_comparison', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(), // Convert the form data to a string
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("Received data:", data);
-        if (data.success) {
-            displaySuccessMessage("Data successfully received!");
-            updateTable(data.data); // Call the function to update the table
-        } else {
-            displayErrorMessage("Error in data retrieval: " + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        displayErrorMessage("Error in data retrieval. Please try again.");
-    });
+<script>
+    function searchAndDisplayProduct() {
+                    showLoadingSpinner();
+
+var productDetails = document.getElementById('product_details').value;
+
+// Encode the data for the form-urlencoded format
+var formData = new URLSearchParams();
+formData.append('product_details', productDetails);
+
+// Make an AJAX/Fetch request to the backend
+fetch('/price_comparison', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: formData.toString(), // Convert the form data to a string
+})
+.then(response => response.json())
+.then(data => {
+    console.log("Received data:", data);
+    if (data.success) {
+        displaySuccessMessage("Data successfully received!");
+        updateTable(data.data); // Call the function to update the table
+                                     hideLoadingSpinner();
+
+                document.getElementById('product_info_display').classList.remove('hidden');
+
+    } else {
+        displayErrorMessage("Error in data retrieval: " + data.error);
+                                     hideLoadingSpinner();
+
+    }
+})
+.catch(error => {
+    console.error('Error:', error);
+    displayErrorMessage("Error in data retrieval. Please try again.");
+                                 hideLoadingSpinner();
+
+});
 }
 
 // JavaScript code
-function updateTable(data) {
-    var resultTable = document.getElementById('resultTable').getElementsByTagName('tbody')[0];
+ function updateTable(data) {
+        var resultTable = document.getElementById('resultTable').getElementsByTagName('tbody')[0];
 
-    // Clear existing table content
-    resultTable.innerHTML = '';
+        // Clear existing table content
+        resultTable.innerHTML = '';
 
-    if ( !data) {
-        // Handle case when there's no data or an error occurred
-        console.log("No data available or error occurred");
-        return;
+        if (!data) {
+            // Handle case when there's no data or an error occurred
+            console.log("No data available or error occurred");
+            return;
+        }
+
+        // Assuming data is a JSON-formatted string
+        var parsedData = JSON.parse(data);
+
+        // Assuming parsedData is an array of objects with keys 'Name', 'Image Link', 'Id', and 'Link'
+        parsedData.forEach(item => {
+            var row = resultTable.insertRow();
+            var cell1 = row.insertCell(0);
+            var cell2 = row.insertCell(1);
+            var cell3 = row.insertCell(2);
+            var cell4 = row.insertCell(3);
+
+            cell1.innerHTML = item.Name;
+            cell3.innerHTML = item.Id;
+            cell4.innerHTML = `<a href="${item.Link}" target="_blank">Link</a>`;
+
+            // Create an image element in cell2 and set the source to the Image Link
+            var img = document.createElement('img');
+            img.src = item['Image Link'];
+            img.alt = 'Product Image';
+            img.style.width = '50px'; // Adjust the width as needed
+            cell2.appendChild(img);
+        });
     }
 
-    // Assuming datais a JSON-formatted string
-    var parsedData = JSON.parse(data);
 
-    // Assuming parsedData is an array of objects with keys 'product_name', 'Country', and 'Cheapest_Price'
-    parsedData.forEach(item => {
-        var row = resultTable.insertRow();
-        var cell1 = row.insertCell(0);
-        var cell2 = row.insertCell(1);
-        var cell3 = row.insertCell(2);
+    function displaySuccessMessage(message) {
+        var successMessageElement = document.getElementById('successMessage');
+        successMessageElement.textContent = message;
+    }
 
-        cell1.innerHTML = item.product_name;
-        cell2.innerHTML = item.Country;
-        cell3.innerHTML = item.Cheapest_Price;
-    });
+    function displayErrorMessage(message) {
+        var successMessageElement = document.getElementById('successMessage');
+        successMessageElement.style.color = 'red';
+        successMessageElement.textContent = message;
+    }
+     function showLoadingSpinner() {
+    document.getElementById('loading_spinner').style.display = 'block';
 }
 
-
-        function displaySuccessMessage(message) {
-            var successMessageElement = document.getElementById('successMessage');
-            successMessageElement.textContent = message;
-        }
-
-        function displayErrorMessage(message) {
-            var successMessageElement = document.getElementById('successMessage');
-            successMessageElement.style.color = 'red';
-            successMessageElement.textContent = message;
-        }
-    </script>
+function hideLoadingSpinner() {
+    document.getElementById('loading_spinner').style.display = 'none';
+}
+</script>
 </body>
 </html>
