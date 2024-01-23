@@ -6,6 +6,8 @@ from passlib.hash import sha256_crypt  # Added for password hashing
 from database_management import *
 from asos_scraper import *
 from flask import jsonify
+from flask_swagger_ui import get_swaggerui_blueprint
+from flasgger import Swagger
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
@@ -15,12 +17,37 @@ app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
+swagger_url = '/swagger'
+swaggerui_blueprint = get_swaggerui_blueprint(
+    swagger_url,
+    '/static/swagger.json',
+    config={
+        'app_name': "Retail Analysis Platform"
+    }
+)
+Swagger(app)
+
+app.register_blueprint(swaggerui_blueprint, url_prefix=swagger_url)
 
 # Initialize password hashing
 hasher = sha256_crypt.using(rounds=1000, salt_size=16)
 
 
-# Existing route for index
+@app.route('/api/example', methods=['GET'])
+def example_route():
+    """
+    This is an example route that demonstrates how to use docstrings for documentation.
+
+    ---
+    tags:
+      - Example
+    responses:
+      200:
+        description: Successful response
+    """
+    return jsonify({"message": "Hello, this is an example route!"})
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -34,42 +61,127 @@ def index():
     return render_template('index.html')
 
 
-# Existing route for success
 @app.route('/success')
 def success():
+    """
+    Endpoint for successful form submission.
+
+    ---
+    tags:
+      - Success
+    responses:
+      200:
+        description: Form submitted successfully
+        content:
+          text/html:
+            schema:
+              type: string
+    """
     return "Form submitted successfully!"
 
 
-# New route for user login
-@app.route('/login', methods=['GET', 'POST'])
+#  user login
+@app.route('/login', methods=['POST'])
 def login():
+    """
+    User login endpoint.
+
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - name: username
+        in: formData
+        type: string
+        required: true
+        description: The username for login.
+      - name: password
+        in: formData
+        type: string
+        required: true
+        description: The password for login.
+    responses:
+      200:
+        description: Login successful
+        content:
+          application/json:
+            example: {"message": "Login successful"}
+      401:
+        description: Unauthorized, invalid credentials
+        content:
+          application/json:
+            example: {"message": "Invalid username or password"}
+      400:
+        description: Bad request, missing or invalid parameters
+        content:
+          application/json:
+            example: {"message": "Bad request"}
+    """
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        if not username or not password:
+            return jsonify({"message": "Bad request"}), 400
 
         cur = mysql.connection.cursor()
         cur.execute("SELECT username, password_hash FROM tbl_users WHERE username = %s", (username,))
         user = cur.fetchone()
-
         cur.close()
 
         if user and sha256_crypt.verify(password, user[1]):
             session['username'] = user[0]
+            return jsonify({"message": "Login successful"}), 200
 
-            return redirect(url_for('index'))
+        return jsonify({"message": "Invalid username or password"}), 401
 
-        flash('Invalid username or password', 'error')
+    # If not a POST request, return method not allowed
+    return jsonify({"message": "Method not allowed"}), 405
 
-    return render_template('login.html')
 
-
-# New route for user registration
-@app.route('/register', methods=['GET', 'POST'])
+@app.route('/register', methods=['POST'])
 def register():
+    """
+    User registration endpoint.
+
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - name: username
+        in: formData
+        type: string
+        required: true
+        description: The username for registration.
+      - name: email
+        in: formData
+        type: string
+        required: true
+        description: The email for registration.
+      - name: password
+        in: formData
+        type: string
+        required: true
+        description: The password for registration.
+    responses:
+      201:
+        description: Registration successful
+        content:
+          application/json:
+            example: {"message": "Registration successful! You can now log in."}
+      400:
+        description: Bad request, missing or invalid parameters
+        content:
+          application/json:
+            example: {"message": "Bad request"}
+    """
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        if not username or not email or not password:
+            return jsonify({"message": "Bad request"}), 400
 
         # Hash the password before storing it
         hashed_password = sha256_crypt.hash(password)
@@ -80,18 +192,46 @@ def register():
         mysql.connection.commit()
         cur.close()
 
-        flash('Registration successful! You can now log in.', 'success')
+        return jsonify({"message": "Registration successful! You can now log in."}), 201
 
-        return redirect(url_for('login'))
+    # If not a POST request, return method not allowed
+    return jsonify({"message": "Method not allowed"}), 405
 
-    return render_template('register.html')
 
-
-# Existing route for user logout
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
-    session.pop('username', None)
-    return redirect(url_for('index'))
+    """
+    User logout endpoint.
+
+    ---
+    tags:
+      - Authentication
+    responses:
+      200:
+        description: Logout successful
+        content:
+          application/json:
+            example: {"message": "Logout successful"}
+      401:
+        description: Unauthorized, user not logged in
+        content:
+          application/json:
+            example: {"message": "Unauthorized, user not logged in"}
+      405:
+        description: Method not allowed
+        content:
+          application/json:
+            example: {"message": "Method not allowed"}
+    """
+    if request.method == 'POST':
+        if 'username' in session:
+            session.pop('username', None)
+            return jsonify({"message": "Logout successful"}), 200
+        else:
+            return jsonify({"message": "Unauthorized, user not logged in"}), 401
+
+    # If not a POST request, return method not allowed
+    return jsonify({"message": "Method not allowed"}), 405
 
 
 @app.route('/add_product', methods=['GET', 'POST'])
@@ -149,26 +289,21 @@ def add_product():
 @app.route('/price_comparison', methods=['GET', 'POST'])
 def price_comparison():
     if request.method == 'POST':
-        # Get product URL from the request form data
         product_url = request.form.get('product_details')
 
-        # Handle the product basket search and obtain a pandas DataFrame
         df_result = handle_product_basket_search(product_url)
 
-        # Convert the pandas DataFrame to JSON
         json_result = df_result.to_json(orient='records')
         print(json_result)
-        # Add a success message to the JSON response
         response_data = {
             'success': True,
             'data': json_result
         }
 
-        # Render the template with the JSON data
         return jsonify(response_data)
 
-    # If it's a GET request, simply render the template without processing data
     return render_template('price_comparison.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

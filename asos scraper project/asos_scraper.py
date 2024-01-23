@@ -126,20 +126,18 @@ def build_request_link(product_id):
 
 def extract_info_codembo_url(url):
     try:
-        # Throttling: Introduce a delay between requests to avoid rate limiting
-        time.sleep(2)  # 1-second delay
+        time.sleep(2)
 
         response = requests.get(url)
-        response.raise_for_status()  # Raise HTTPError for bad responses
+        response.raise_for_status()
     except requests.RequestException as e:
         print(f"Error fetching URL: {e}")
-        print(traceback.format_exc())  # Print the complete traceback
+        print(traceback.format_exc())
         return None, None
 
     try:
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Robust Selector for product_name
         product_name_element = soup.select_one('h1.prd-card-title')
 
         if product_name_element:
@@ -150,7 +148,6 @@ def extract_info_codembo_url(url):
 
         product_prices = {}
 
-        # Robust Selectors for country_code and price
         for row in soup.select('table.goodt tbody tr'):
             country_code_element = row.select_one('td')
             price_element = row.select_one('td:nth-of-type(2)')
@@ -160,7 +157,6 @@ def extract_info_codembo_url(url):
                 price = price_element.text.strip()
                 product_prices[country_code] = price
 
-        # Return the result
         return product_name, product_prices
 
     except Exception as e:
@@ -170,26 +166,20 @@ def extract_info_codembo_url(url):
 
 def create_dataframe(products):
     data = []
-    # Iterate through each product in the basket
     for product_name, product_prices in products:
-        # Create a dictionary to store data for the current product
         product_data = {'product_name': product_name}
 
-        # Add product prices to the dictionary
         product_data.update(product_prices)
 
-        # Add availability columns for each country
         for country_code in product_prices.keys():
             availability_column_name = f'{country_code}_available'
 
-            # Add availability columns for each country
             for country_code in product_prices.keys():
                 availability_column_name = f'{country_code}_available'
                 product_data[availability_column_name] = not pd.isnull(product_prices[country_code])
         # Append the product data to the list
         data.append(product_data)
 
-    # Create a DataFrame from the list of product data
     df = pd.DataFrame(data)
 
     print(df.columns)
@@ -197,7 +187,7 @@ def create_dataframe(products):
     sum_df = pd.DataFrame(index=['Sum'])
     for country_code in product_prices.keys():
         df[country_code] = pd.to_numeric(df[country_code],
-                                         errors='coerce')  # Convert to numeric, handle errors by setting them to NaN
+                                         errors='coerce')
         sum_df[country_code] = df[country_code].sum().round(2)
     can_use_il17(df, sum_df)
     export_to_csv(sum_df, 'sum_output.csv')
@@ -207,10 +197,8 @@ def create_dataframe(products):
 
 
 def analyze_price_each_country(df, sum_df):
-    # Flatten the sum_df DataFrame and sort it to find the two smallest values
     sorted_sum = sum_df.unstack().sort_values()
 
-    # Extract the two smallest values and their corresponding countries
     smallest_values = sorted_sum.head(2)
     cheapest_country, second_cheapest_country = [col[0] for col in smallest_values.index]
     print(cheapest_country)
@@ -231,7 +219,6 @@ def analyze_price_each_country(df, sum_df):
         basket_dict[country]['products'].append({'product_name': product_name, 'price': price})
         basket_dict[country]['total_price'] += price
 
-    # Print the basket_dict
     for country, details in basket_dict.items():
         print(f"Country: {country}")
         print("Products:")
@@ -243,15 +230,12 @@ def analyze_price_each_country(df, sum_df):
 
 
 def compare_prices(df, cheapest_country, second_cheapest_country):
-    # Create an empty list to store the results
     result_list = []
 
-    # Iterate through each product
     for index, row in df.iterrows():
         product_name = row['product_name']
 
         if row[cheapest_country] == 0.0 and row[second_cheapest_country] == 0.0:
-            # Find minimum non-zero price and country
             non_zero_prices = {col: price for col, price in row.items() if price != 0}
             if non_zero_prices:
                 cheapest_country = min(non_zero_prices, key=non_zero_prices.get)
@@ -267,10 +251,8 @@ def compare_prices(df, cheapest_country, second_cheapest_country):
 
         country = cheapest_country if row[cheapest_country] == cheapest_price else second_cheapest_country
 
-        # Append the result to the list
         result_list.append({'product_name': product_name, 'Country': country, 'Cheapest_Price': cheapest_price})
 
-    # Create a DataFrame from the list of results
     result_df = pd.DataFrame(result_list)
 
     sum_basket = result_df['Cheapest_Price'].sum()
@@ -282,14 +264,11 @@ def compare_prices(df, cheapest_country, second_cheapest_country):
 
 
 def export_to_csv(df, filename='product_prices.csv'):
-    # Export DataFrame to a CSV file
     df.to_csv(filename, index=False)
     print(f'DataFrame exported to {filename}')
 
 
 def extract_product_id_from_url(url):
-    missing_info_placeholder = None
-
     data = {
         'Name': [],
         'Image Link': [],
@@ -308,50 +287,38 @@ def extract_product_id_from_url(url):
     driver = webdriver.Chrome(path, options=options)
 
     try:
-        # Navigate to the URL
         driver.get(url)
 
-        # Wait for the name element to be present on the page
         container_element = WebDriverWait(driver, 2).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "productTilesWrapper_LkXSW"))
         )
 
-        # Use BeautifulSoup to parse the HTML content of the container
         soup = BeautifulSoup(container_element.get_attribute("outerHTML"), 'html.parser')
 
-        # Find all <li> elements within the container
         li_elements = soup.find_all('li')
 
-        # Extract href values from each <li> element
         for li in li_elements:
+            time.sleep(2)
             print(li)
             if li.find('a') and 'href' in li.find('a').attrs:
                 href = 'https://www.asos.com/' + li.find('a')['href']
-                product_id = extract_asos_product_id(href)  # Assuming extract_asos_product_id is defined somewhere
+                product_id = extract_asos_product_id(href)
 
-                # Find the <img> tag
-                image_link_element =  li.select_one('img')
+                image_link_element = li.select_one('img')
                 print(image_link_element)
 
-                # Find the product title <div> tag
                 product_title_div = li.find('div', class_='productTitle_gn7x9')
 
-                # Check if the product title <div> tag is found
                 if product_title_div:
-                    # Extract the product name
                     name = product_title_div.find('p').text.strip()
                     data['Name'].append(name)
                 else:
-                    # If product title <div> tag is not found, append None or a placeholder
                     data['Name'].append(None)
 
-                # Check if the <img> tag is found
                 if image_link_element:
-                    # Extract the 'src' attribute
                     image_link = extract_image_link(image_link_element)
                     data['Image Link'].append(image_link)
                 else:
-                    # If <img> tag is not found, append None or a placeholder
                     data['Image Link'].append(None)
 
                 data['Link'].append(href)
@@ -377,25 +344,20 @@ def id_list_to_price_list(product_id_list):
 
 
 def can_use_il17(df, sum_df):
-    # Define the minimum cost in EUR
     min_cost_eur = convert_currency(50, '£', 'EUR')
 
-    # Check if the total cost for IL exceeds the minimum cost in EUR
     if (sum_df['IL'] > min_cost_eur).all():
-        # Update all rows in the 'IL' column of sum_df
         sum_df['IL'] = (sum_df['IL'] * 0.83).round(2)
-        # Update all rows in the 'IL' column of df
         df['IL'] = (df['IL'] * 0.83).round(2)
 
     return df, sum_df
 
 
 def split_products_into_baskets(products_df, min_value, max_value):
-    # Sort products based on name and then by price
     sorted_products = products_df.sort_values(by=['product_name', 'Cheapest_Price'])
     n = len(sorted_products)
     dp = [float('inf')] * (n + 1)
-    dp[0] = 0  # Minimum baskets needed for an empty list is 0
+    dp[0] = 0
 
     for i in range(1, n + 1):
         current_basket_value = 0
@@ -405,7 +367,6 @@ def split_products_into_baskets(products_df, min_value, max_value):
             current_basket_value += sorted_products.iloc[j - 1]['Cheapest_Price']
             max_price_in_basket = max(max_price_in_basket, sorted_products.iloc[j - 1]['Cheapest_Price'])
 
-            # Check if adding the current product exceeds the maximum value per basket
             if current_basket_value <= max_value and max_price_in_basket <= max_value:
                 dp[i] = min(dp[i], dp[j - 1] + 1)
 
@@ -431,7 +392,6 @@ def split_products_into_baskets(products_df, min_value, max_value):
 
 
 def printb(result):
-    # Print the result in a more readable format
     for i, basket in enumerate(result, start=1):
         print(f'Basket {i}:')
         print(f'Country: {basket["Country"]}')
@@ -459,29 +419,23 @@ def send_to_israel(url):
     driver = webdriver.Chrome(path, options=options)
 
     try:
-        # Navigate to the URL
         driver.get(url)
 
-        # Wait for the name element to be present on the page
         name_element = WebDriverWait(driver, 2).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "jcdpl"))
         )
 
-        # Extract the name text
         name_text = name_element.get_attribute("innerText").strip()
         print("Product Name:", name_text)
 
-        # Find the shipping restrictions button
         shipping_restrictions_button = WebDriverWait(driver, 1).until(
             EC.visibility_of_element_located(
                 (By.XPATH, "//button[@data-testid='deliveryAndReturns__shippingRestrictionsButton']")
             )
         )
         if shipping_restrictions_button:
-            # Click on the shipping restrictions button
             shipping_restrictions_button.click()
 
-            # Wait for the list of shipping restrictions to appear
             shipping_restrictions_list = WebDriverWait(driver, 2).until(
                 EC.visibility_of_element_located(
                     (By.XPATH, "//ul[@class='Uu_Pi' and @data-testid='shipping-restrictions-country-list']")
