@@ -294,7 +294,7 @@ def extract_product_id_from_url(url):
         )
 
         soup = BeautifulSoup(container_element.get_attribute("outerHTML"), 'html.parser')
-
+        print(soup)
         li_elements = soup.find_all('li')
 
         for li in li_elements:

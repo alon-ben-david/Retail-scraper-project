@@ -331,21 +331,64 @@ def add_product():
 
 @app.route('/price_comparison', methods=['GET', 'POST'])
 def price_comparison():
+    """
+    Price comparison endpoint.
+
+    ---
+
+    tags:
+      - Product Management
+    parameters:
+      - name: product_details
+        in: formData
+        type: string
+        description: Product details for price comparison.
+
+    responses:
+      200:
+        description: Price comparison successful.
+        content:
+          application/json:
+            example:
+              {
+                "success": true,
+                "data": [{"product_name": "Product 1", "price": 99.99}, {"product_name": "Product 2", "price": 129.99}]
+              }
+
+      400:
+        description: Bad request, missing or invalid parameters.
+        content:
+          application/json:
+            example: {"message": "Bad request"}
+
+      404:
+        description: Product not found for the provided details.
+        content:
+          application/json:
+            example: {"message": "Product not found for the provided details."}
+    """
+
+    # Check if the request method is POST
     if request.method == 'POST':
+        # Get product details from the form
         product_url = request.form.get('product_details')
 
+        # Handle product basket search
         df_result = handle_product_basket_search(product_url)
 
+        # Convert DataFrame result to JSON
         json_result = df_result.to_json(orient='records')
-        print(json_result)
+
+        # Prepare response data
         response_data = {
             'success': True,
             'data': json_result
         }
 
-        return jsonify(response_data)
+        return jsonify(response_data), 200
 
-    return render_template('price_comparison.html')
+    # If not a POST request, return bad request
+    return jsonify({"message": "Bad request"}), 400
 
 
 if __name__ == '__main__':
