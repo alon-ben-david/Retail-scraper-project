@@ -41,8 +41,8 @@ def extract_info_from_url(url):
         )
 
         # Extract the name text
-        name_text = name_element.get_attribute("innerText").strip()
-        print("Product Name:", name_text)
+        name = name_element.get_attribute("innerText").strip()
+        print("Product Name:", name)
 
         try:
             price_element = WebDriverWait(driver, 1).until(
@@ -67,24 +67,24 @@ def extract_info_from_url(url):
         if len(parts) == 3 and parts[0] == "Now":
             # Extract the price_number and price_currency
             price_number = float(parts[1])
-            price_currency = parts[2]
+            currency = parts[2]
 
             print("Price Number:", price_number)
-            print("Price Currency:", price_currency)
+            print("Price Currency:", currency)
 
         elif len(parts) == 2 and parts[0] != "Now":
             # Extract the price_number and price_currency
             price_number = float(parts[0])
-            price_currency = parts[1]
+            currency = parts[1]
 
             print("Price Number:", price_number)
-            print("Price Currency:", price_currency)
+            print(" Currency:", currency)
 
         else:
             print("Unexpected price format.")
 
             # Return the extracted values
-        return price_currency, name_text, price_number
+        return currency, name, price_number
 
     except TimeoutException as te:
         print(f"TimeoutException: {te}")

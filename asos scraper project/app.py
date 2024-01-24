@@ -61,25 +61,6 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/success')
-def success():
-    """
-    Endpoint for successful form submission.
-
-    ---
-    tags:
-      - Success
-    responses:
-      200:
-        description: Form submitted successfully
-        content:
-          text/html:
-            schema:
-              type: string
-    """
-    return "Form submitted successfully!"
-
-
 #  user login
 @app.route('/login', methods=['POST'])
 def login():
@@ -117,6 +98,9 @@ def login():
           application/json:
             example: {"message": "Bad request"}
     """
+    if 'username' in session:
+        return jsonify({"message": "Bad request - There is a connection to another user"}), 400
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -234,56 +218,115 @@ def logout():
     return jsonify({"message": "Method not allowed"}), 405
 
 
-@app.route('/add_product', methods=['GET', 'POST'])
+@app.route('/add_product', methods=['POST'])
 def add_product():
-    if 'username' in session:
-        product_url = ''
-        currency = ''
-        product_name = ''
-        initial_price = 0
+    """
+    User add product to track endpoint.
 
+    ---
+
+    tags:
+      - Product Management
+    parameters:
+      - name: product_url
+        in: formData
+        type: string
+        description: Search for product details using the provided URL.
+      - name: price_target
+        in: formData
+        type: double
+        description: Set target price.
+    responses:
+      200:
+        description: Add product to track successfully.
+        content:
+          application/json:
+            example:
+              {
+                "currency": "ILS",
+                "price target": 88,
+                "product_name": "Topman oversized collarless jersey blazer in grey",
+                "product_price": 175.81,
+                "message": "Product added successfully"
+              }
+
+      401:
+        description: User not logged in. Please log in.
+        content:
+          application/json:
+            example: {"message": "User not logged in. Please log in."}
+
+      400:
+        description: Invalid product URL.
+        content:
+          application/json:
+            example:
+              value: {"message": "Invalid product URL."}
+
+      402:
+        description: Product already exists.
+        content:
+          application/json:
+            example:
+              value: {"message": "Product already exists for the user."}
+
+      404:
+        description: Product not found in the provided URL.
+        content:
+          application/json:
+            example:
+              value: {"message": "Product not found in the provided URL."}
+
+      403:
+        description: Error extracting product information.
+        content:
+          application/json:
+            example:
+              value: {"message": "Error extracting product information."}
+    """
+
+    if 'username' in session:
         if request.method == 'POST':
             app.logger.info(request.form)
-            if 'search_product' in request.form:
-                # Handle product search
-                product_url = request.form['product_details']
-                data = (extract_product_id_from_url(product_url))
-                price = id_list_to_price_list(data)
+            product_url = request.form.get('product_url')
+            price_target = request.form.get('price_target')
+
+            if not is_valid_asos_product_link(product_url):
+                return jsonify({"message": "Invalid product URL."}), 400
+
+            try:
                 currency, product_name, initial_price = extract_info_from_url(product_url)
-                response_data = {
-                    'product_name': product_name,
-                    'product_price': initial_price,
-                    'currency': currency
-                }
-                return jsonify(response_data)
+            except Exception as e:
+                return jsonify({"message": "Error extracting product information."}), 403
 
-            else:  # Assuming the other button is 'add_product'
-                username = session['username']
-                user_id = get_user_id_by_username(username)
+            response_data = {
+                'product_name': product_name,
+                'product_price': initial_price,
+                'currency': currency,
+                'price target': price_target
+            }
 
-                if user_id:
-                    url = request.form['product_url']
-                    target_price = request.form['target_price_value']
-                    product_name = request.form['product_name_value']
-                    current_price = request.form['product_price_value']
-                    currency = request.form['currency_display_value']
-                    initial_price = request.form['product_price_value']
-                    if not product_exists(user_id, product_name):
-                        # Extract current price and currency here
-                        print(target_price)
-                        save_tracked_product(user_id, product_name, url, initial_price, target_price, current_price,
-                                             currency)
+            username = session['username']
+            user_id = get_user_id_by_username(username)
 
-                        return redirect(url_for('success'))
+            if product_exists(user_id, product_name):
+                return jsonify({"message": "Product already exists for the user."}), 402
 
-                    flash('Product already exists for the user.', 'error')
-                else:
-                    flash('User not found.', 'error')
+            save_tracked_product(
+                user_id,
+                product_name,
+                product_url,
+                initial_price,
+                price_target,
+                initial_price,
+                currency
+            )
 
-        return render_template('add_product.html')
+            response_data["message"] = "Product added successfully"
+            return jsonify(response_data), 200
+
     else:
-        flash('Please log in to add or search a product.', 'error')
-        return redirect(url_for('login'))
+        return jsonify({"message": "User not logged in. Please log in."}), 401
 
 
 @app.route('/price_comparison', methods=['GET', 'POST'])
