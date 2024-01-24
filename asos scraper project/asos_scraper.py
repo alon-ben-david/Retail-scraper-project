@@ -289,44 +289,70 @@ def extract_product_id_from_url(url):
     try:
         driver.get(url)
 
-        container_element = WebDriverWait(driver, 2).until(
-            EC.visibility_of_element_located((By.CLASS_NAME, "productTilesWrapper_LkXSW"))
+        # Wait for the entire page to load
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
+
+        # Find the container element using XPath
+        container_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="savedlists"]/div/div/section/ol'))
         )
 
-        soup = BeautifulSoup(container_element.get_attribute("outerHTML"), 'html.parser')
-        print(soup)
-        li_elements = soup.find_all('li')
+        # Find li elements within the container
+        li_elements = container_element.find_elements(By.TAG_NAME, 'li')
 
-        for li in li_elements:
-            time.sleep(2)
-            print(li)
-            if li.find('a') and 'href' in li.find('a').attrs:
-                href = 'https://www.asos.com/' + li.find('a')['href']
-                product_id = extract_asos_product_id(href)
+        for index, li in enumerate(li_elements, start=1):
+            try:
+                # Find the 'a' element within the li using Selenium
+                a_element = li.find_element(By.TAG_NAME, 'a')
 
-                image_link_element = li.select_one('img')
-                print(image_link_element)
+                # Try to get the href attribute and handle if not present
+                try:
+                    href = 'https://www.asos.com/' + a_element.get_attribute('href')
+                    product_id = extract_asos_product_id(href)
 
-                product_title_div = li.find('div', class_='productTitle_gn7x9')
+                    # Add your logic to extract and store the href in your data structure
+                except AttributeError:
+                    print("Error: href attribute not found for the 'a' element.")
+                    # Handle this situation as needed
+                product_title_div = li.find_element(By.XPATH, './/div[@class="productTitle_gn7x9"]')
 
-                if product_title_div:
-                    name = product_title_div.find('p').text.strip()
-                    data['Name'].append(name)
-                else:
-                    data['Name'].append(None)
+                # Try to find the 'p' element within product_title_div and get its text
+                try:
+                    name = product_title_div.find_element(By.TAG_NAME, 'p').text.strip()
+                    print(name)
+                    # Add your logic to extract and store the product name in your data structure
+                except NoSuchElementException:
+                    print("Error: 'p' element not found within the product_title_div.")
+                    # Handle this situation as needed
 
-                if image_link_element:
-                    image_link = extract_image_link(image_link_element)
-                    data['Image Link'].append(image_link)
-                else:
-                    data['Image Link'].append(None)
+                # Find img element within the li using Selenium
+                image_link_element = li.find_element(By.TAG_NAME, 'img')
 
-                data['Link'].append(href)
-                data['Id'].append(product_id)
+                # Try to get the src attribute and handle if not present
+                try:
+                    image_link = image_link_element.get_attribute('src')
+                    print(image_link)
+                    # Add your logic to extract and store the image link in your data structure
+                except AttributeError:
+                    print("Error: src attribute not found for the image element.")
+                    # Handle this situation as needed
+
+            except NoSuchElementException:
+                print("Error: 'a' element not found in the li element.")
+                # Handle this situation as needed
+            data['Name'].append(name)
+            data['Image Link'].append(image_link)
+            data['Link'].append(href)
+            data['Id'].append(product_id)
+            # Scroll down after every 3 li elements
+            if index % 3 == 0:
+                driver.execute_script("window.scrollBy(0, window.innerHeight)")
 
         data_df = pd.DataFrame(data)
         print(data_df[['Name', 'Image Link']])
         return data_df
+
+
 
     finally:
         driver.quit()
