@@ -14,6 +14,9 @@ import time
 from currency_converter import convert_currency
 import concurrent.futures  # For threading
 import traceback
+from basket_database_management import save_basket,basket_exists,save_product_to_basket,get_basket_id_by_link
+
+
 
 
 def extract_info_from_url(url):
@@ -268,7 +271,7 @@ def export_to_csv(df, filename='product_prices.csv'):
     print(f'DataFrame exported to {filename}')
 
 
-def extract_product_id_from_url(url):
+def extract_product_id_from_url(url, user_id):
     data = {
         'Name': [],
         'Image Link': [],
@@ -288,7 +291,13 @@ def extract_product_id_from_url(url):
 
     try:
         driver.get(url)
-
+        container_element_basket_name = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/main/main/div/h1'))
+        )
+        basket_name = container_element_basket_name.text.strip()
+        basket_link = url
+        save_basket(basket_name, basket_link, user_id)
+        basket_id = get_basket_id_by_link(basket_link)
         # Wait for the entire page to load
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
 
@@ -307,8 +316,8 @@ def extract_product_id_from_url(url):
 
                 # Try to get the href attribute and handle if not present
                 try:
-                    href = 'https://www.asos.com/' + a_element.get_attribute('href')
-                    product_id = extract_asos_product_id(href)
+                    link = 'https://www.asos.com/' + a_element.get_attribute('href')
+                    product_id = extract_asos_product_id(link)
 
                     # Add your logic to extract and store the href in your data structure
                 except AttributeError:
@@ -318,8 +327,8 @@ def extract_product_id_from_url(url):
 
                 # Try to find the 'p' element within product_title_div and get its text
                 try:
-                    name = product_title_div.find_element(By.TAG_NAME, 'p').text.strip()
-                    print(name)
+                    product_name = product_title_div.find_element(By.TAG_NAME, 'p').text.strip()
+                    print(product_name)
                     # Add your logic to extract and store the product name in your data structure
                 except NoSuchElementException:
                     print("Error: 'p' element not found within the product_title_div.")
@@ -340,11 +349,12 @@ def extract_product_id_from_url(url):
             except NoSuchElementException:
                 print("Error: 'a' element not found in the li element.")
                 # Handle this situation as needed
-            data['Name'].append(name)
+            data['Name'].append(product_name)
             data['Image Link'].append(image_link)
-            data['Link'].append(href)
+            data['Link'].append(link)
             data['Id'].append(product_id)
             # Scroll down after every 3 li elements
+            save_product_to_basket(product_name, image_link, link, product_id, basket_id, user_id)
             if index % 3 == 0:
                 driver.execute_script("window.scrollBy(0, window.innerHeight)")
 
@@ -484,7 +494,6 @@ def send_to_israel(url):
         return "Error"
 
     finally:
-        # Close the WebDriver
         driver.quit()
 
 
@@ -501,17 +510,3 @@ def handle_product_basket_search(product_url):
     data = extract_product_id_from_url(product_url)
 
     return data
-
-
-def extract_image_link(html_code):
-    # Check if html_code is not None
-    if html_code:
-        # Access the 'src' attribute of the <img> tag
-        src_attribute = html_code.get('src')
-
-        # Check if 'src' attribute is found
-        if src_attribute:
-            return src_attribute
-
-    # Return None if 'src' attribute is not found or html_code is None
-    return None

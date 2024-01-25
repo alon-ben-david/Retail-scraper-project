@@ -3,7 +3,6 @@ from app import *
 import schedule
 from time import sleep
 
-
 mysql.init_app(app)
 
 
@@ -296,5 +295,6 @@ def check_price(product_id):
 
     except Exception as e:
         print(f"Error in check_price for product ID {product_id}: {e}")
+
 
 

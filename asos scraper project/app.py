@@ -8,14 +8,15 @@ from asos_scraper import *
 from flask import jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 from flasgger import Swagger
+from config import Config
+from basket_database_management import get_basket_by_userid, delete_basket_by_basket_id
+import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 # MySQL Configuration
-app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
-app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
-app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
-app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+app.config.from_object(Config)
+
 mysql = MySQL(app)
 swagger_url = '/swagger'
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -329,7 +330,7 @@ def add_product():
         return jsonify({"message": "User not logged in. Please log in."}), 401
 
 
-@app.route('/price_comparison', methods=['GET', 'POST'])
+@app.route('/add_basket', methods=['POST'])
 def price_comparison():
     """
     Price comparison endpoint.
@@ -337,16 +338,16 @@ def price_comparison():
     ---
 
     tags:
-      - Product Management
+      - Basket Management
     parameters:
-      - name: product_details
+      - name: basket_link
         in: formData
         type: string
-        description: Product details for price comparison.
+        description: basket to add.
 
     responses:
       200:
-        description: Price comparison successful.
+        description: The basket add successful.
         content:
           application/json:
             example:
@@ -361,34 +362,154 @@ def price_comparison():
           application/json:
             example: {"message": "Bad request"}
 
-      404:
-        description: Product not found for the provided details.
+      401:
+        description: User not logged in. Please log in.
         content:
           application/json:
-            example: {"message": "Product not found for the provided details."}
+            example: {"message": "User not logged in. Please log in."}
+
+    402:
+        description: Product already exists.
+        content:
+          application/json:
+            example:
+              value: {"message": "Basket already exists for the user."}
     """
+    if 'username' in session:
+        # Check if the request method is POST
+        if request.method == 'POST':
+            username = session['username']
+            user_id = get_user_id_by_username(username)
+            basket_link = request.form.get('basket_link')
+            if basket_exists(user_id, basket_link):
+                return jsonify({"message": "Basket already exists for the user."}), 402
 
-    # Check if the request method is POST
-    if request.method == 'POST':
-        # Get product details from the form
-        product_url = request.form.get('product_details')
+            df_result = extract_product_id_from_url(basket_link, user_id)
 
-        # Handle product basket search
-        df_result = handle_product_basket_search(product_url)
+            # Convert DataFrame result to JSON
+            json_result = df_result.to_json(orient='records')
 
-        # Convert DataFrame result to JSON
-        json_result = df_result.to_json(orient='records')
+            # Prepare response data
+            response_data = {
+                'success': True,
+                'data': json_result
+            }
 
-        # Prepare response data
-        response_data = {
-            'success': True,
-            'data': json_result
-        }
+            return jsonify(response_data), 200
 
-        return jsonify(response_data), 200
+        # If not a POST request, return bad request
+        return jsonify({"message": "Bad request"}), 400
+    else:
+        return jsonify({"message": "User not logged in. Please log in."}), 401
 
-    # If not a POST request, return bad request
-    return jsonify({"message": "Bad request"}), 400
+
+@app.route('/display_baskets', methods=['GET'])
+def display_baskets():
+    """
+    display baskets endpoint.
+
+    ---
+
+    tags:
+      - Basket Management
+
+
+    responses:
+      200:
+        description: The basket display successful.
+        content:
+          application/json:
+            example:
+              {
+                "data": [{"basket_id":2, "basket_name":"shoes", "basket_link":"www.asos.com/basket", "user_id":3, "last_basket_check":2024-01-25 16:04:28}]
+              }
+
+      400:
+        description: Bad request, missing or invalid parameters.
+        content:
+          application/json:
+            example: {"message": "Bad request"}
+
+      401:
+        description: User not logged in. Please log in.
+        content:
+          application/json:
+            example: {"message": "User not logged in. Please log in."}
+
+
+    """
+    if 'username' in session:
+        # Check if the request method is POST
+        if request.method == 'GET':
+            username = session['username']
+            user_id = get_user_id_by_username(username)
+
+            baskets_list = get_basket_by_userid(user_id)
+            json_result = json.dumps(baskets_list, indent=2, ensure_ascii=False)
+
+            # Prepare response data
+            response_data = {
+                'data': json_result
+            }
+
+            return jsonify(response_data), 200
+
+        # If not a POST request, return bad request
+        return jsonify({"message": "Bad request"}), 400
+    else:
+        return jsonify({"message": "User not logged in. Please log in."}), 401
+
+
+@app.route('/delete_baskets', methods=['DELETE'])
+def delete_baskets():
+    """
+Delete baskets endpoint.
+
+---
+
+tags:
+- Basket Management
+parameters:
+- name: basket_id
+in: formData
+type: int
+description: basket to delete.
+
+responses:
+200:
+description: The basket delete successful.
+content:
+  application/json:
+    example: {"message": "The basket delete successful."}
+
+400:
+description: Bad request, missing or invalid parameters.
+content:
+  application/json:
+    example: {"message": "Bad request"}
+
+401:
+description: User not logged in. Please log in.
+content:
+  application/json:
+    example: {"message": "User not logged in. Please log in."}
+"""
+
+    if 'username' in session:
+        # Check if the request method is POST
+        if request.method == 'DELETE':
+            username = session['username']
+            user_id = get_user_id_by_username(username)
+            basket_id = request.form.get('basket_id')
+            json_result = delete_basket_by_basket_id(basket_id)
+
+            if json_result:
+                return jsonify({"message": "The basket delete successful."}), 200
+
+        # If not a POST request, return bad request
+        return jsonify({"message": "Bad request"}), 400
+    else:
+        return jsonify({"message": "User not logged in. Please log in."}), 401
 
 
 if __name__ == '__main__':
