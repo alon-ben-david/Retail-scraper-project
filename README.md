@@ -2,7 +2,8 @@
 
 ## Description
 
-The "Monitoring Price Drops on asos.com" project is a comprehensive software solution designed to keep users informed about price changes on the popular e-commerce platform, asos.com. The project focuses on creating an efficient and user-friendly system that monitors product prices, identifies drops, and notifies users promptly.
+The platform that connects to retail websites and automatically analyzes data according to customer requests. The analysis includes prices, promotions, coupons, optimal order splitting, product recommendations, and shopping cart comparison. 
+The platform was developed using: Python, Beautiful Soup and Selenium ,MySQL ,SQLAlchemy Flask (REST APIs) and designed using object-oriented programming (OOP) concepts.
 
 ## Features and Functionality
 
