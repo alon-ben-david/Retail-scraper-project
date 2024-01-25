@@ -161,27 +161,36 @@ def get_basket_by_userid(user_id):
         return None
 
 
-def delete_basket_by_basket_id(basket_id):
+def delete_basket_by_basket_id(basket_id, user_id):
     try:
         connection = mysql.connection
         if connection:
             cursor = connection.cursor()
 
-            # Delete the basket by basket_id
-            delete_query = "DELETE FROM product_tbl WHERE basket_id = %s"
-            cursor.execute(delete_query, (basket_id,))
-            delete_query = "DELETE FROM basket_tbl WHERE basket_id = %s"
-            cursor.execute(delete_query, (basket_id,))
-            connection.commit()
+            # Check if the basket exists
+            check_basket_query = "SELECT * FROM basket_tbl WHERE basket_id = %s AND user_id = %s"
+            cursor.execute(check_basket_query, (basket_id, user_id))
+            existing_basket = cursor.fetchone()
 
-            cursor.close()
+            if existing_basket:
+                # Delete the related products
+                delete_products_query = "DELETE FROM product_tbl WHERE basket_id = %s AND user_id = %s"
+                cursor.execute(delete_products_query, (basket_id, user_id))
 
-            return True
+                # Delete the basket by basket_id
+                delete_basket_query = "DELETE FROM basket_tbl WHERE basket_id = %s AND user_id = %s"
+                cursor.execute(delete_basket_query, (basket_id, user_id))
 
-        else:
-            print("Connection to the database failed.")
-            return None
+                connection.commit()
+                cursor.close()
+
+                return True
+            else:
+                print("Basket does not exist.")
 
     except Exception as e:
         print(f"Error: {e}")
-        return None
+
+    finally:
+
+        return False

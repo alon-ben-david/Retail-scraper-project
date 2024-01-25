@@ -501,6 +501,56 @@ content:
             username = session['username']
             user_id = get_user_id_by_username(username)
             basket_id = request.form.get('basket_id')
+            json_result = delete_basket_by_basket_id(basket_id,user_id)
+
+            if json_result:
+                return jsonify({"message": "The basket delete successful."}), 200
+
+        # If not a POST request, return bad request
+        return jsonify({"message": "Bad request"}), 400
+    else:
+        return jsonify({"message": "User not logged in. Please log in."}), 401
+@app.route('/send_to_israel', methods=['GET'])
+def if_products_send_to_israel():
+    """
+Delete baskets endpoint.
+
+---
+
+tags:
+- Basket Management
+parameters:
+- name: basket_id
+in: formData
+type: int
+description: basket to check.
+
+responses:
+200:
+description: The list of products that are not shipped to Israel.
+content:
+  application/json:
+    example: {"message": "The list of products that are not shipped to Israel:"}
+
+400:
+description: Bad request, missing or invalid parameters.
+content:
+  application/json:
+    example: {"message": "Bad request"}
+
+401:
+description: User not logged in. Please log in.
+content:
+  application/json:
+    example: {"message": "User not logged in. Please log in."}
+"""
+
+    if 'username' in session:
+        # Check if the request method is POST
+        if request.method == 'GET':
+            username = session['username']
+            user_id = get_user_id_by_username(username)
+            basket_id = request.form.get('basket_id')
             json_result = delete_basket_by_basket_id(basket_id)
 
             if json_result:
@@ -510,7 +560,6 @@ content:
         return jsonify({"message": "Bad request"}), 400
     else:
         return jsonify({"message": "User not logged in. Please log in."}), 401
-
 
 if __name__ == '__main__':
     app.run(debug=True)
