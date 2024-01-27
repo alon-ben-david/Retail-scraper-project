@@ -386,13 +386,12 @@ def price_comparison():
 
             df_result = extract_product_id_from_url(basket_link, user_id)
 
-            # Convert DataFrame result to JSON
-            json_result = df_result.to_json(orient='records')
+            products_data = df_result.to_dict(orient='records')
 
             # Prepare response data
             response_data = {
                 'success': True,
-                'data': json_result
+                'data': products_data
             }
 
             return jsonify(response_data), 200
@@ -463,37 +462,37 @@ def display_baskets():
 @app.route('/delete_baskets', methods=['DELETE'])
 def delete_baskets():
     """
-Delete baskets endpoint.
+    Delete baskets endpoint.
 
----
+    ---
 
-tags:
-- Basket Management
-parameters:
-- name: basket_id
-in: formData
-type: int
-description: basket to delete.
+    tags:
+      - Basket Management
+    parameters:
+      - name: basket_id
+        in: formData
+        type: int
+        description: basket to delete.
 
-responses:
-200:
-description: The basket delete successful.
-content:
-  application/json:
-    example: {"message": "The basket delete successful."}
+    responses:
+      200:
+        description: The basket delete successful.
+        content:
+          application/json:
+            example: {"message": "The basket delete successful."}
 
-400:
-description: Bad request, missing or invalid parameters.
-content:
-  application/json:
-    example: {"message": "Bad request"}
+      400:
+        description: Bad request, missing or invalid parameters.
+        content:
+          application/json:
+            example: {"message": "Bad request"}
 
-401:
-description: User not logged in. Please log in.
-content:
-  application/json:
-    example: {"message": "User not logged in. Please log in."}
-"""
+      401:
+        description: User not logged in. Please log in.
+        content:
+          application/json:
+            example: {"message": "User not logged in. Please log in."}
+    """
 
     if 'username' in session:
         # Check if the request method is POST
@@ -501,7 +500,7 @@ content:
             username = session['username']
             user_id = get_user_id_by_username(username)
             basket_id = request.form.get('basket_id')
-            json_result = delete_basket_by_basket_id(basket_id,user_id)
+            json_result = delete_basket_by_basket_id(basket_id, user_id)
 
             if json_result:
                 return jsonify({"message": "The basket delete successful."}), 200
@@ -510,39 +509,41 @@ content:
         return jsonify({"message": "Bad request"}), 400
     else:
         return jsonify({"message": "User not logged in. Please log in."}), 401
+
+
 @app.route('/send_to_israel', methods=['GET'])
 def if_products_send_to_israel():
     """
-Delete baskets endpoint.
 
+if products send to israel
 ---
 
 tags:
-- Basket Management
+  - Basket Management
 parameters:
-- name: basket_id
-in: formData
-type: int
-description: basket to check.
+  - name: basket_id
+    in: formData
+    type: int
+    description: Basket to delete.
 
 responses:
-200:
-description: The list of products that are not shipped to Israel.
-content:
-  application/json:
-    example: {"message": "The list of products that are not shipped to Israel:"}
+  200:
+    description: The basket delete successful.
+    content:
+      application/json:
+        example: {"message": "The basket delete successful."}
 
-400:
-description: Bad request, missing or invalid parameters.
-content:
-  application/json:
-    example: {"message": "Bad request"}
+  400:
+    description: Bad request, missing or invalid parameters.
+    content:
+      application/json:
+        example: {"message": "Bad request"}
 
-401:
-description: User not logged in. Please log in.
-content:
-  application/json:
-    example: {"message": "User not logged in. Please log in."}
+  401:
+    description: User not logged in. Please log in.
+    content:
+      application/json:
+        example: {"message": "User not logged in. Please log in."}
 """
 
     if 'username' in session:
@@ -551,15 +552,27 @@ content:
             username = session['username']
             user_id = get_user_id_by_username(username)
             basket_id = request.form.get('basket_id')
-            json_result = delete_basket_by_basket_id(basket_id)
+            products = if_products_send_to_israel_by_basket_id(basket_id, user_id)
 
-            if json_result:
-                return jsonify({"message": "The basket delete successful."}), 200
+            if products:
+                not_send_to_israel = []
+                for product in products:
+                    if not send_to_israel(product[0]):
+                        not_send_to_israel.append(product[1])
 
-        # If not a POST request, return bad request
-        return jsonify({"message": "Bad request"}), 400
+                if len(not_send_to_israel) == 0:
+                    return jsonify({"message": "All products shipped to Israel."}), 200
+                else:
+                    json_result = json.dumps(not_send_to_israel, indent=2, ensure_ascii=False)
+                    if json_result:
+                        return jsonify({"message": "The products not shipped to Israel are:"}, json_result), 200
+
+            return jsonify({"message": "Bad request"}), 400
+        else:
+            return jsonify({"message": "Bad request"}), 400
     else:
         return jsonify({"message": "User not logged in. Please log in."}), 401
+
 
 if __name__ == '__main__':
     app.run(debug=True)

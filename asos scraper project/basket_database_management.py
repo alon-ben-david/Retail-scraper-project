@@ -194,3 +194,37 @@ def delete_basket_by_basket_id(basket_id, user_id):
     finally:
 
         return False
+
+
+def if_products_send_to_israel_by_basket_id(basket_id, user_id):
+    try:
+        connection = mysql.connection
+        if connection:
+            cursor = connection.cursor()
+
+            # Check if the basket exists
+            check_basket_query = "SELECT * FROM basket_tbl WHERE basket_id = %s AND user_id = %s"
+            cursor.execute(check_basket_query, (basket_id, user_id))
+            existing_basket = cursor.fetchone()
+
+            if existing_basket:
+                products_link_query = "SELECT link,product_name FROM  product_tbl WHERE basket_id = %s"
+                cursor.execute(products_link_query, basket_id)
+                products = cursor.fetchall()
+
+                connection.commit()
+                cursor.close()
+
+                return products
+            else:
+                connection.commit()
+                cursor.close()
+                return False
+        else:
+            return False
+    except Exception as e:
+        print(f"Error: {e}")
+
+    finally:
+
+        return False
