@@ -52,14 +52,7 @@ def send_email(email_receiver, email_subject, email_body):
 email_receiver = "alonbenda4@gmail.com"
 email_subject = "I love you!"
 email_body = """
-Hi Oren,
 
-I just wanted to let you know that I love you more than anything in the world. I'm so glad that I have you in my life.
-
-I also wanted to tell you that I was able to send you this email from my Python application. I'm so proud of what I've accomplished, and I wanted to share it with you.
-I wish myself one and only one thing for this life that I will get you to be by my side for the rest of this life
-I love you !!!,
-Alon
 """
 
 # Call the function to send the email
