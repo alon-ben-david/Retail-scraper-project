@@ -12,6 +12,7 @@ from config import Config
 from basket_database_management import get_basket_by_userid, delete_basket_by_basket_id
 import json
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
 # MySQL Configuration
@@ -27,9 +28,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     }
 )
 Swagger(app)
-from authentication_routes import authentication_routes
-from product_management_routes import product_management_routes
-from basket_management_routes import basket_management_routes
+from routes import authentication_routes, product_management_routes, basket_management_routes
 
 app.register_blueprint(authentication_routes)
 app.register_blueprint(basket_management_routes)
