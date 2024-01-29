@@ -1,4 +1,3 @@
-# Project Work Plan: Monitoring Price Drops on asos.com
 
 ## Description
 
