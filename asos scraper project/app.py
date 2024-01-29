@@ -27,14 +27,15 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     }
 )
 Swagger(app)
+from authentication_routes import authentication_routes
+from product_management_routes import product_management_routes
+from basket_management_routes import basket_management_routes
 
-from routes import authentication_routes,product_management_routes,basket_management_routes
 app.register_blueprint(authentication_routes)
 app.register_blueprint(basket_management_routes)
 app.register_blueprint(product_management_routes)
 # Initialize password hashing
 hasher = sha256_crypt.using(rounds=1000, salt_size=16)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
