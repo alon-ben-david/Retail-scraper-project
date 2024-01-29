@@ -186,14 +186,13 @@ def delete_basket_by_basket_id(basket_id, user_id):
 
                 return True
             else:
-                print("Basket does not exist.")
+                return False
 
     except Exception as e:
         print(f"Error: {e}")
-
-    finally:
-
         return False
+
+
 
 
 def if_products_send_to_israel_by_basket_id(basket_id, user_id):
