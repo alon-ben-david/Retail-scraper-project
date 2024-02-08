@@ -14,9 +14,7 @@ import time
 from currency_converter import convert_currency
 import concurrent.futures  # For threading
 import traceback
-from basket_database_management import save_basket,basket_exists,save_product_to_basket,get_basket_id_by_link
-
-
+from basket_database_management import save_basket, basket_exists, save_product_to_basket, get_basket_id_by_link
 
 
 def extract_info_from_url(url):
@@ -276,7 +274,9 @@ def extract_product_id_from_url(url, user_id):
         'Name': [],
         'Image Link': [],
         'Id': [],
-        'Link': []
+        'Link': [],
+        'Price': [],
+        'Currency': []
     }
     options = Options()
     options.headless = True
@@ -298,63 +298,72 @@ def extract_product_id_from_url(url, user_id):
         basket_link = url
         save_basket(basket_name, basket_link, user_id)
         basket_id = get_basket_id_by_link(basket_link)
-        # Wait for the entire page to load
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
 
-        # Find the container element using XPath
         container_element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="savedlists"]/div/div/section/ol'))
         )
 
-        # Find li elements within the container
         li_elements = container_element.find_elements(By.TAG_NAME, 'li')
 
         for index, li in enumerate(li_elements, start=1):
             try:
-                # Find the 'a' element within the li using Selenium
                 a_element = li.find_element(By.TAG_NAME, 'a')
 
-                # Try to get the href attribute and handle if not present
                 try:
                     link = 'https://www.asos.com/' + a_element.get_attribute('href')
                     product_id = extract_asos_product_id(link)
 
-                    # Add your logic to extract and store the href in your data structure
                 except AttributeError:
                     print("Error: href attribute not found for the 'a' element.")
-                    # Handle this situation as needed
+
                 product_title_div = li.find_element(By.XPATH, './/div[@class="productTitle_gn7x9"]')
 
-                # Try to find the 'p' element within product_title_div and get its text
                 try:
                     product_name = product_title_div.find_element(By.TAG_NAME, 'p').text.strip()
                     print(product_name)
-                    # Add your logic to extract and store the product name in your data structure
+
                 except NoSuchElementException:
                     print("Error: 'p' element not found within the product_title_div.")
-                    # Handle this situation as needed
 
-                # Find img element within the li using Selenium
+                product_price_element = li.find_element_by_class_name("productPrice_4mG1K")
+                current_price_element = product_price_element.find_element_by_xpath(
+                    './/span[@class="currentPrice_ZLxNR discounted_OvFRw"]/span[@class="noWrap_FJw5Z"]')
+
+                product_price_text = current_price_element.text
+
+                try:
+                    match = re.match(r'([^\d]+)([\d.]+)', product_price_text)
+                    if match:
+                        product_currency = match.group(1)
+                        product_price = float(match.group(2))
+                        print("Currency:", product_currency)
+                        print("Price:", product_price)
+
+                except Exception as e:
+                    print(f"Error: {e}")
+
                 image_link_element = li.find_element(By.TAG_NAME, 'img')
 
-                # Try to get the src attribute and handle if not present
                 try:
                     image_link = image_link_element.get_attribute('src')
                     print(image_link)
-                    # Add your logic to extract and store the image link in your data structure
+
                 except AttributeError:
                     print("Error: src attribute not found for the image element.")
-                    # Handle this situation as needed
 
             except NoSuchElementException:
                 print("Error: 'a' element not found in the li element.")
-                # Handle this situation as needed
+
             data['Name'].append(product_name)
             data['Image Link'].append(image_link)
             data['Link'].append(link)
             data['Id'].append(product_id)
-            # Scroll down after every 3 li elements
-            save_product_to_basket(product_name, image_link, link, product_id, basket_id, user_id)
+            data['Price'].append(product_price)
+            data['Currency'].append(product_currency)
+
+            save_product_to_basket(product_name, image_link, link, product_id, basket_id, user_id, product_price,
+                                   product_currency)
             if index % 3 == 0:
                 driver.execute_script("window.scrollBy(0, window.innerHeight)")
 
@@ -362,10 +371,9 @@ def extract_product_id_from_url(url, user_id):
         print(data_df[['Name', 'Image Link']])
         return data_df
 
-
-
     finally:
         driver.quit()
+
 
 
 def id_list_to_price_list(product_id_list):

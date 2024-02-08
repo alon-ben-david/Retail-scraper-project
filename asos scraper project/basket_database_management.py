@@ -73,7 +73,7 @@ def basket_exists(user_id, basket_link):
         return False
 
 
-def save_product_to_basket(product_name, image_link, link, product_id, basket_id, user_id):
+def save_product_to_basket(product_name, image_link, link, product_id, basket_id, user_id,product_price,product_currency):
     try:
         connection = mysql.connection
 
@@ -82,11 +82,11 @@ def save_product_to_basket(product_name, image_link, link, product_id, basket_id
 
             insert_query = """
                 INSERT INTO product_tbl 
-                (product_name, image_link, link, product_id, basket_id, user_id) 
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (product_name, image_link, link, product_id, basket_id, user_id, product_price, product_currency) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
 
-            values = (product_name, image_link, link, product_id, basket_id, user_id)
+            values = (product_name, image_link, link, product_id, basket_id, user_id, product_price, product_currency)
 
             cursor.execute(insert_query, values)
 
