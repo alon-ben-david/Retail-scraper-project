@@ -16,7 +16,7 @@ basket_management_routes = Blueprint('basket_management_routes', __name__)
 
 
 @basket_management_routes.route('/add_basket', methods=['POST'])
-def price_comparison():
+def add_basket():
     """
     Price comparison endpoint.
 
