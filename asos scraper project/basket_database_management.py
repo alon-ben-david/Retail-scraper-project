@@ -159,7 +159,39 @@ def get_basket_by_userid(user_id):
     except Exception as e:
         print(f"Error: {e}")
         return None
+def get_products_by_userid(user_id,basket_id):
+    try:
+        connection = mysql.connection
+        if connection:
+            cursor = connection.cursor()
 
+            query = "SELECT product_id product_name link product_price product_currency FROM product_tbl WHERE basket_id = %s AND user_id = %s"
+            cursor.execute(check_basket_query, (basket_id, user_id))
+
+            products = cursor.fetchall()
+
+            cursor.close()
+
+            if products:
+                products_list = [
+                    {
+                        'product_id': item[0],
+                        'product_name': item[1],
+                        'link': item[2],
+                        'product_price': item[3],
+                        'product_currency': item[4]
+                    } for item in baskets
+                ]
+                return products_list
+            else:
+                return None
+        else:
+            print("Connection to the database failed.")
+            return None
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 def delete_basket_by_basket_id(basket_id, user_id):
     try:

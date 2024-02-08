@@ -278,19 +278,19 @@ def extract_product_id_from_url(url, user_id):
         'Price': [],
         'Currency': []
     }
+
     options = Options()
     options.headless = True
     options.add_argument('window-size=1920x1080')
     options.add_argument("--enable-logging")
-    options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
     path = os.getenv('CHROMEDRIVER_PATH')
-
     driver = webdriver.Chrome(path, options=options)
 
     try:
         driver.get(url)
+
         container_element_basket_name = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/main/main/div/h1'))
         )
@@ -298,8 +298,8 @@ def extract_product_id_from_url(url, user_id):
         basket_link = url
         save_basket(basket_name, basket_link, user_id)
         basket_id = get_basket_id_by_link(basket_link)
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
 
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, 'body')))
         container_element = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="savedlists"]/div/div/section/ol'))
         )
@@ -327,8 +327,17 @@ def extract_product_id_from_url(url, user_id):
                     print("Error: 'p' element not found within the product_title_div.")
 
                 product_price_element = li.find_element_by_class_name("productPrice_4mG1K")
-                current_price_element = product_price_element.find_element_by_xpath(
-                    './/span[@class="currentPrice_ZLxNR discounted_OvFRw"]/span[@class="noWrap_FJw5Z"]')
+
+                first_config = product_price_element.find_elements_by_xpath(
+                    './/span[@class="currentPrice_ZLxNR discounted_OvFRw"]/span[@class="noWrap_FJw5Z"]'
+                )
+
+                second_config = product_price_element.find_elements_by_xpath(
+                    './/span[@class="currentPrice_ZLxNR"]/span[@class="noWrap_FJw5Z"]'
+                )
+
+                # Check which configuration is present
+                current_price_element = first_config[0] if first_config else second_config[0]
 
                 product_price_text = current_price_element.text
 
@@ -364,8 +373,10 @@ def extract_product_id_from_url(url, user_id):
 
             save_product_to_basket(product_name, image_link, link, product_id, basket_id, user_id, product_price,
                                    product_currency)
-            if index % 3 == 0:
+
+            if index % 5 == 0:
                 driver.execute_script("window.scrollBy(0, window.innerHeight)")
+                time.sleep(1)
 
         data_df = pd.DataFrame(data)
         print(data_df[['Name', 'Image Link']])
@@ -373,6 +384,7 @@ def extract_product_id_from_url(url, user_id):
 
     finally:
         driver.quit()
+
 
 
 
@@ -397,8 +409,8 @@ def can_use_il17(df, sum_df):
     return df, sum_df
 
 
-def split_products_into_baskets(products_df, min_value, max_value):
-    sorted_products = products_df.sort_values(by=['product_name', 'Cheapest_Price'])
+def split_products_into_baskets(products_df, max_value):
+    sorted_products = products_df.sort_values(by=['product_name', 'product_Price'])
     n = len(sorted_products)
     dp = [float('inf')] * (n + 1)
     dp[0] = 0
@@ -408,8 +420,8 @@ def split_products_into_baskets(products_df, min_value, max_value):
         max_price_in_basket = 0
 
         for j in range(i, 0, -1):
-            current_basket_value += sorted_products.iloc[j - 1]['Cheapest_Price']
-            max_price_in_basket = max(max_price_in_basket, sorted_products.iloc[j - 1]['Cheapest_Price'])
+            current_basket_value += sorted_products.iloc[j - 1]['product_Price']
+            max_price_in_basket = max(max_price_in_basket, sorted_products.iloc[j - 1]['product_Price'])
 
             if current_basket_value <= max_value and max_price_in_basket <= max_value:
                 dp[i] = min(dp[i], dp[j - 1] + 1)
@@ -422,13 +434,12 @@ def split_products_into_baskets(products_df, min_value, max_value):
             j -= 1
 
         basket_products = sorted_products.iloc[j:i]
-        basket_total_price = basket_products['Cheapest_Price'].sum().round(2)
+        basket_total_price = basket_products['product_Price'].sum().round(2)
 
         result.append({
             'Basket': result[::-1],
-            'Country': basket_products['Country'].values[0],
             'Total_Price': basket_total_price,
-            'Products': basket_products[['product_name', 'Cheapest_Price']].to_dict(orient='records')
+            'Products': basket_products[['product_name', 'product_Price']].to_dict(orient='records')
         })
         i = j
 
@@ -518,3 +529,9 @@ def handle_product_basket_search(product_url):
     data = extract_product_id_from_url(product_url)
 
     return data
+
+
+def split_basket(result_df, product_currency):
+    customs_payment_limit = convert_currency(75, '$', product_currency)
+
+    split = split_products_into_baskets(result_df_country, 50, customs_payment_limit)

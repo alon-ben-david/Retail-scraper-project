@@ -9,10 +9,7 @@ from asos_scraper import *
 from flask_swagger_ui import get_swaggerui_blueprint
 from basket_database_management import get_basket_by_userid, delete_basket_by_basket_id
 
-
 basket_management_routes = Blueprint('basket_management_routes', __name__)
-
-
 
 
 @basket_management_routes.route('/add_basket', methods=['POST'])
@@ -135,13 +132,13 @@ def display_baskets():
             baskets_list = get_basket_by_userid(user_id)
             json_result = json.dumps(baskets_list, indent=2, ensure_ascii=False)
             if json_result == "null":
-                return jsonify({"message": "Does not have a shopping basket."}),200
+                return jsonify({"message": "Does not have a shopping basket."}), 200
 
             else:
                 # Prepare response data
                 response_data = {
                     'Basket to display': json_result
-                 }
+                }
 
                 return jsonify(response_data), 200
 
@@ -263,6 +260,73 @@ responses:
                         return jsonify({"message": "The products not shipped to Israel are:"}, json_result), 200
 
             return jsonify({"message": "Bad request"}), 400
+        else:
+            return jsonify({"message": "Bad request"}), 400
+    else:
+        return jsonify({"message": "User not logged in. Please log in."}), 401
+
+
+@basket_management_routes.route('/split_to_baskets', methods=['GET'])
+def split_to_baskets():
+    """
+
+Splitting the products in the basket in an optimal way
+---
+
+tags:
+  - Basket Management
+parameters:
+  - name: basket_id
+    in: formData
+    type: int
+    description: Basket to delete.
+  -name: percentage_discount
+    in: formData
+    type: int
+    description: Basket to delete.
+
+responses:
+  200:
+    description: The basket delete successful.
+    content:
+      application/json:
+        example: {"message": "The basket delete successful."}
+
+  400:
+    description: Bad request, missing or invalid parameters.
+    content:
+      application/json:
+        example: {"message": "Bad request"}
+
+  401:
+    description: User not logged in. Please log in.
+    content:
+      application/json:
+        example: {"message": "User not logged in. Please log in."}
+"""
+    from app import mysql, app
+    from database_management import get_user_id_by_username
+    if 'username' in session:
+        # Check if the request method is POST
+        if request.method == 'GET':
+            username = session['username']
+            user_id = get_user_id_by_username(username)
+            basket_id = request.form.get('basket_id')
+            percentage_discount = request.form.get('percentage_discount')
+            basket = get_products_by_userid(user_id, basket_id)
+            if basket:
+                products_df = pd.DataFrame(products_list)
+                products_df['discounted_price'] = products_df['product_price'] * (
+                        1 - percentage_discount / 100)
+                product_currency = products_df['product_currency'].iloc[0]
+                split_basket = split_basket(products_df, product_currency)
+                json_result = json.dumps(split_basket, indent=2, ensure_ascii=False)
+                if json_result:
+                    return jsonify({"message": "The best split to baskets is:"}, json_result), 200
+
+
+            else:
+                return jsonify({"message": "Bad basket id"}), 400
         else:
             return jsonify({"message": "Bad request"}), 400
     else:
