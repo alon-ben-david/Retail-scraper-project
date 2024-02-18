@@ -269,45 +269,42 @@ responses:
 @basket_management_routes.route('/split_to_baskets', methods=['GET'])
 def split_to_baskets():
     """
+    Splitting the products in the basket in an optimal way
+    ---
 
-Splitting the products in the basket in an optimal way
----
+    tags:
+      - Basket Management
+    parameters:
+      - name: basket_id
+        in: formData
+        type: int
+        description: Basket to delete.
+      - name: percentage_discount
+        in: formData
+        type: int  # Keep it as int since it's coming from form data
+        description: Basket to delete.
 
-tags:
-  - Basket Management
-parameters:
-  - name: basket_id
-    in: formData
-    type: int
-    description: Basket to delete.
-  -name: percentage_discount
-    in: formData
-    type: int
-    description: Basket to delete.
+    responses:
+      200:
+        description: The basket delete successful.
+        content:
+          application/json:
+            example: {"message": "The basket delete successful."}
 
-responses:
-  200:
-    description: The basket delete successful.
-    content:
-      application/json:
-        example: {"message": "The basket delete successful."}
+      400:
+        description: Bad request, missing or invalid parameters.
+        content:
+          application/json:
+            example: {"message": "Bad request"}
 
-  400:
-    description: Bad request, missing or invalid parameters.
-    content:
-      application/json:
-        example: {"message": "Bad request"}
-
-  401:
-    description: User not logged in. Please log in.
-    content:
-      application/json:
-        example: {"message": "User not logged in. Please log in."}
-"""
-    from app import mysql, app
-    from database_management import get_user_id_by_username
+      401:
+        description: User not logged in. Please log in.
+        content:
+          application/json:
+            example: {"message": "User not logged in. Please log in."}
+    """
     if 'username' in session:
-        # Check if the request method is POST
+        # Check if the request method is GET
         if request.method == 'GET':
             username = session['username']
             user_id = get_user_id_by_username(username)
@@ -315,16 +312,12 @@ responses:
             percentage_discount = request.form.get('percentage_discount')
             basket = get_products_by_userid(user_id, basket_id)
             if basket:
-                products_df = pd.DataFrame(products_list)
-                products_df['discounted_price'] = products_df['product_price'] * (
-                        1 - percentage_discount / 100)
+                products_df = pd.DataFrame(basket)  # Use basket instead of products_list
+                products_df['discounted_price'] = products_df['product_price'] * (1 - float(percentage_discount) / 100)
                 product_currency = products_df['product_currency'].iloc[0]
-                split_basket = split_basket(products_df, product_currency)
-                json_result = json.dumps(split_basket, indent=2, ensure_ascii=False)
-                if json_result:
-                    return jsonify({"message": "The best split to baskets is:"}, json_result), 200
-
-
+                split_basket_result = split_basket(products_df, product_currency)
+                json_result = json.dumps(split_basket_result, indent=2, ensure_ascii=False)
+                return jsonify({"message": "The best split to baskets is:", "result": json_result}), 200
             else:
                 return jsonify({"message": "Bad basket id"}), 400
         else:
