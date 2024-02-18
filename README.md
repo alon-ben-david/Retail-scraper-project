@@ -1,9 +1,9 @@
 
 ## Description
 
-The platform that connects to retail websites and automatically analyzes data according to customer requests. The analysis includes prices, promotions, coupons, optimal order splitting, product recommendations, and shopping cart comparison. 
+The Backend api platform that connects to retail websites and automatically analyzes data according to customer requests. The analysis includes prices, promotions, coupons, optimal order splitting, product recommendations, and shopping cart comparison. 
 The platform was developed using: Python, Beautiful Soup and Selenium ,MySQL ,SQLAlchemy Flask (REST APIs) and designed using object-oriented programming (OOP) concepts.
-![API Swagger](api swagger.png)
+![API Swagger](api_swagger.png)
 
 ## Features and Functionality
 
